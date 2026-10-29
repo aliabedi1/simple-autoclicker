@@ -1,9 +1,9 @@
 @echo off
 cd /d "%~dp0"
 if exist ".venv\Scripts\python.exe" (
-    ".venv\Scripts\python.exe" autoclicker.py
+    ".venv\Scripts\python.exe" desktop.py
 ) else (
-    py -3 autoclicker.py
+    py -3 desktop.py
 )
 if errorlevel 1 (
     echo.

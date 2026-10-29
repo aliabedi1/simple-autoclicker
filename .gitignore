@@ -1,3 +1,8 @@
 .venv/
 __pycache__/
 *.py[cod]
+node_modules/
+*.tsbuildinfo
+.impeccable/mocks/
+.impeccable/live/
+web/.vite/

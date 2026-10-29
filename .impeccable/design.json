@@ -1,0 +1,583 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-29T11:58:02.577790+00:00",
+  "title": "Design System: Simple Autoclicker",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Primary",
+        "canonical": "#245db5",
+        "tonalRamp": [
+          "oklch(0.15 0.036 260)",
+          "oklch(0.26 0.072 260)",
+          "oklch(0.38 0.102 260)",
+          "oklch(0.5 0.12 260)",
+          "oklch(0.62 0.12 260)",
+          "oklch(0.74 0.096 260)",
+          "oklch(0.86 0.054 260)",
+          "oklch(0.95 0.018 260)"
+        ]
+      },
+      "primary-foreground": {
+        "role": "neutral",
+        "displayName": "Primary Foreground",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Background",
+        "canonical": "#f8fafc",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Foreground",
+        "canonical": "#172335",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#f1f5f9",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Muted Foreground",
+        "canonical": "#58677d",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "secondary": {
+        "role": "neutral",
+        "displayName": "Secondary",
+        "canonical": "#edf2f7",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "secondary-foreground": {
+        "role": "neutral",
+        "displayName": "Secondary Foreground",
+        "canonical": "#334155",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Accent",
+        "canonical": "#eaf1fc",
+        "tonalRamp": [
+          "oklch(0.15 0.036 260)",
+          "oklch(0.26 0.072 260)",
+          "oklch(0.38 0.102 260)",
+          "oklch(0.5 0.12 260)",
+          "oklch(0.62 0.12 260)",
+          "oklch(0.74 0.096 260)",
+          "oklch(0.86 0.054 260)",
+          "oklch(0.95 0.018 260)"
+        ]
+      },
+      "accent-foreground": {
+        "role": "neutral",
+        "displayName": "Accent Foreground",
+        "canonical": "#194a96",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Border",
+        "canonical": "#dfe6ef",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "input": {
+        "role": "neutral",
+        "displayName": "Input",
+        "canonical": "#d6deea",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "destructive": {
+        "role": "neutral",
+        "displayName": "Destructive",
+        "canonical": "oklch(0.577 0.245 27.325)",
+        "tonalRamp": [
+          "oklch(0.15 0.051 26)",
+          "oklch(0.26 0.102 26)",
+          "oklch(0.38 0.1445 26)",
+          "oklch(0.5 0.17 26)",
+          "oklch(0.62 0.17 26)",
+          "oklch(0.74 0.136 26)",
+          "oklch(0.86 0.0765 26)",
+          "oklch(0.95 0.0255 26)"
+        ]
+      },
+      "dark-primary": {
+        "role": "primary",
+        "displayName": "Dark Primary",
+        "canonical": "#82aaff",
+        "tonalRamp": [
+          "oklch(0.15 0.036 260)",
+          "oklch(0.26 0.072 260)",
+          "oklch(0.38 0.102 260)",
+          "oklch(0.5 0.12 260)",
+          "oklch(0.62 0.12 260)",
+          "oklch(0.74 0.096 260)",
+          "oklch(0.86 0.054 260)",
+          "oklch(0.95 0.018 260)"
+        ]
+      },
+      "dark-primary-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Primary Foreground",
+        "canonical": "#101b31",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-background": {
+        "role": "neutral",
+        "displayName": "Dark Background",
+        "canonical": "#101318",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Foreground",
+        "canonical": "#e8edf5",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-card": {
+        "role": "neutral",
+        "displayName": "Dark Card",
+        "canonical": "#171b22",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Muted",
+        "canonical": "#202630",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-muted-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Muted Foreground",
+        "canonical": "#a1adbd",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-secondary": {
+        "role": "neutral",
+        "displayName": "Dark Secondary",
+        "canonical": "#252d39",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-secondary-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Secondary Foreground",
+        "canonical": "#dce5f1",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "Dark Accent",
+        "canonical": "#24354f",
+        "tonalRamp": [
+          "oklch(0.15 0.036 260)",
+          "oklch(0.26 0.072 260)",
+          "oklch(0.38 0.102 260)",
+          "oklch(0.5 0.12 260)",
+          "oklch(0.62 0.12 260)",
+          "oklch(0.74 0.096 260)",
+          "oklch(0.86 0.054 260)",
+          "oklch(0.95 0.018 260)"
+        ]
+      },
+      "dark-accent-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Accent Foreground",
+        "canonical": "#b6ceff",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-border": {
+        "role": "neutral",
+        "displayName": "Dark Border",
+        "canonical": "#303947",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-input": {
+        "role": "neutral",
+        "displayName": "Dark Input",
+        "canonical": "#3c485b",
+        "tonalRamp": [
+          "oklch(0.15 0.0045 250)",
+          "oklch(0.26 0.009 250)",
+          "oklch(0.38 0.0127 250)",
+          "oklch(0.5 0.015 250)",
+          "oklch(0.62 0.015 250)",
+          "oklch(0.74 0.012 250)",
+          "oklch(0.86 0.0067 250)",
+          "oklch(0.95 0.0022 250)"
+        ]
+      },
+      "dark-destructive": {
+        "role": "neutral",
+        "displayName": "Dark Destructive",
+        "canonical": "oklch(0.704 0.191 22.216)",
+        "tonalRamp": [
+          "oklch(0.15 0.051 26)",
+          "oklch(0.26 0.102 26)",
+          "oklch(0.38 0.1445 26)",
+          "oklch(0.5 0.17 26)",
+          "oklch(0.62 0.17 26)",
+          "oklch(0.74 0.136 26)",
+          "oklch(0.86 0.0765 26)",
+          "oklch(0.95 0.0255 26)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page heading",
+        "purpose": "Responsive workspace title."
+      },
+      "title": {
+        "displayName": "Panel title",
+        "purpose": "Setup and schedule headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default interface text."
+      },
+      "label": {
+        "displayName": "Control label",
+        "purpose": "Buttons and labels."
+      },
+      "helper": {
+        "displayName": "Helper",
+        "purpose": "Field explanations."
+      }
+    },
+    "shadows": [
+      {
+        "name": "select-overlay",
+        "value": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+        "purpose": "Nova select popover shadow-md; panels remain flat."
+      }
+    ],
+    "motion": [
+      {
+        "name": "overlay-duration",
+        "value": "100ms",
+        "purpose": "Dialog and select entry/exit."
+      },
+      {
+        "name": "reduced-motion-duration",
+        "value": "0.01ms",
+        "purpose": "Global animation and transition duration under reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "workspace-margins",
+        "value": "1190px"
+      },
+      {
+        "name": "panels-stack",
+        "value": "850px"
+      },
+      {
+        "name": "compact-mobile",
+        "value": "560px"
+      },
+      {
+        "name": "input-small-type",
+        "value": "768px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "description": "Primary Button from the implemented workspace.",
+      "html": "<button class=\"ds-primary\">Start clicking</button>",
+      "css": ".ds-primary{font-family:var(--font-sans);font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);height:32px;padding:0 10px;cursor:pointer;transition:all 150ms cubic-bezier(.4,0,.2,1);background:var(--primary);color:var(--primary-foreground);border:1px solid transparent}.ds-primary:hover{background:color-mix(in oklch,var(--primary) 80%,transparent)}.ds-primary:active{transform:translateY(1px)}.ds-primary:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}",
+      "refersTo": "button-primary"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "description": "Outline Button from the implemented workspace.",
+      "html": "<button class=\"ds-outline\">Stop</button>",
+      "css": ".ds-outline{font-family:var(--font-sans);font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);height:32px;padding:0 10px;cursor:pointer;transition:all 150ms cubic-bezier(.4,0,.2,1);background:var(--background);color:var(--foreground);border:1px solid var(--border)}.ds-outline:hover{background:var(--muted)}.ds-outline:active{transform:translateY(1px)}.ds-outline:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}",
+      "refersTo": "button-outline"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "description": "Ghost Button from the implemented workspace.",
+      "html": "<button class=\"ds-ghost\" aria-label=\"Move step up\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m5 12 7-7 7 7M12 19V5\"/></svg></button>",
+      "css": ".ds-ghost{font-family:var(--font-sans);font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);height:32px;padding:0 10px;cursor:pointer;transition:all 150ms cubic-bezier(.4,0,.2,1);height:28px;width:28px;padding:0;border:1px solid transparent;background:transparent;color:var(--foreground)}.ds-ghost:hover{background:var(--muted)}.ds-ghost:active{transform:translateY(1px)}.ds-ghost:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}",
+      "refersTo": "button-ghost"
+    },
+    {
+      "name": "Coordinate Field",
+      "kind": "input",
+      "description": "Coordinate Field from the implemented workspace.",
+      "html": "<label class=\"ds-label\" for=\"ds-x\">X position</label><input class=\"ds-input\" id=\"ds-x\" type=\"number\" value=\"0\">",
+      "css": ".ds-label{display:block;color:var(--foreground);font:500 14px/20px var(--font-sans);margin-bottom:8px}.ds-input{height:40px;width:100%;border:1px solid var(--input);border-radius:var(--radius);padding:4px 10px;background:transparent;color:var(--foreground);font:14px/20px var(--font-sans);font-variant-numeric:tabular-nums;caret-color:var(--primary);transition:color 150ms,border-color 150ms}.ds-input:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}.ds-input[aria-invalid=true]{border-color:var(--destructive)}.ds-input:disabled{opacity:.5;cursor:not-allowed}",
+      "refersTo": "input"
+    },
+    {
+      "name": "Workspace Panel",
+      "kind": "card",
+      "description": "Workspace Panel from the implemented workspace.",
+      "html": "<section class=\"ds-panel\"><h2>Schedule</h2><p>Choose when to start and stop.</p></section>",
+      "css": ".ds-panel{background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:14px;padding:24px;font-family:var(--font-sans)}.ds-panel h2{font-size:17px;font-weight:620;letter-spacing:-.02em;margin:0}.ds-panel p{font-size:13px;color:var(--muted-foreground);margin:4px 0 0}",
+      "refersTo": "panel"
+    },
+    {
+      "name": "Outline Status Badge",
+      "kind": "chip",
+      "description": "Outline Status Badge from the implemented workspace.",
+      "html": "<span class=\"ds-badge\">Desktop connected</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;height:20px;border:1px solid var(--border);border-radius:calc(var(--radius)*2.6);padding:2px 8px;color:var(--foreground);font:500 12px/16px var(--font-sans)}",
+      "refersTo": "badge-outline"
+    },
+    {
+      "name": "Mode Control",
+      "kind": "custom",
+      "description": "Mode Control from the implemented workspace.",
+      "html": "<div class=\"ds-modes\" role=\"group\" aria-label=\"Click mode\"><button aria-pressed=\"true\">Single point</button><button aria-pressed=\"false\">Pattern</button></div>",
+      "css": ".ds-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ds-modes button{font-family:var(--font-sans);font-size:14px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius);height:32px;padding:0 10px;cursor:pointer;transition:all 150ms cubic-bezier(.4,0,.2,1);min-height:42px;border:1px solid var(--input);background:transparent;color:var(--foreground)}.ds-modes button[aria-pressed=true],.ds-modes button:hover{background:var(--muted)}.ds-modes button:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in oklch,var(--ring) 50%,transparent)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Operate",
+    "overview": "A task-focused desktop control surface: precise, calm, and readable while a run is active. The pointer-and-clock identity is retained; blue connects the primary action, focus, and run indicator. Controls use the existing shadcn/ui Radix Nova vocabulary with locally hosted Geist.\n\nThe interface follows the system appearance by default and offers explicit light and dark choices. Semantic color roles change together, keeping the same visual hierarchy across both appearances.",
+    "keyCharacteristics": [
+      "Blue primary actions and focus treatment.",
+      "Compact semantic controls with explicit labels.",
+      "Flat, bordered surfaces and restrained tonal layering.",
+      "Responsive setup and schedule panels with a separate run strip."
+    ],
+    "rules": [
+      {
+        "name": "Semantic Theme",
+        "body": "Use semantic CSS variables for every surface and state so system, light, and dark appearances remain coherent.",
+        "section": "colors"
+      },
+      {
+        "name": "Stable Numbers",
+        "body": "Use tabular numerals for coordinates, wait values, step numbers, and running counters so updates do not shift their alignment.",
+        "section": "typography"
+      },
+      {
+        "name": "Quiet Surface",
+        "body": "Use borders and semantic surface contrast for ordinary panels; reserve overlay depth for floating library components.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use semantic theme variables and keep system appearance as the default.",
+      "Do retain the name, pointer-and-clock icon, and blue action identity.",
+      "Do keep visible field labels, keyboard focus, and accessible names for icon actions.",
+      "Do preserve tabular numerals and the distinct run controls."
+    ],
+    "donts": [
+      "Don't replace the requested Radix Nova controls with a competing visual vocabulary.",
+      "Don't hard-code light surfaces into components that participate in dark mode.",
+      "Don't hide Stop while a run is active."
+    ]
+  }
+}

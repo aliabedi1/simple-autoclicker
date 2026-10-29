@@ -1,3 +1,6 @@
 * text=auto
 *.sh text eol=lf
 *.cmd text eol=crlf
+web/** text=auto eol=lf
+# Preserve whitespace inside third-party template literals in generated bundles.
+web/dist/assets/*.js -whitespace

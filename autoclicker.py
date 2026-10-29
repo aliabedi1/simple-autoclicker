@@ -56,6 +56,7 @@ class ClickerApp:
     def __init__(self, root, mouse):
         self.root, self.mouse = root, mouse
         self.run = None
+        self.last_completed = 0
         self.point = None
         self.job = None
         self.overlay = None
@@ -289,6 +290,7 @@ class ClickerApp:
             self.status.set(str(error))
             return
         self.run, self.point = ClickRun(plan), point
+        self.last_completed = 0
         self.set_busy(True)
         self.tick()
 
@@ -347,6 +349,7 @@ class ClickerApp:
                 self.point = run.current_step.point if run.current_step is not None else self.point
                 self.mouse.click(self.point)
                 run.record_click(time.monotonic())
+                self.last_completed = run.completed
             if not run.active:
                 self.finish(f'Completed {run.completed} click(s).')
                 return
