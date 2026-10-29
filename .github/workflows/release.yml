@@ -1,0 +1,151 @@
+name: Build installers
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: Create a draft release after all packages pass
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  interface:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Prepare desktop test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb libxtst6
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements.txt
+      - name: Build and lint interface
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+          npm run lint
+      - name: Test browser layouts and actions
+        working-directory: web
+        run: xvfb-run -a npm test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend
+          path: web/dist/
+          if-no-files-found: error
+
+  package:
+    needs: interface
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: frontend
+          path: build/frontend
+      - name: Install Linux build libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb libxtst6 libxi6 libxss1 libfontconfig1 libfreetype6 xdg-utils desktop-file-utils
+      - name: Install Python build tools
+        run: python -m pip install -r requirements-build.txt
+      - name: Test Python on Windows
+        if: runner.os == 'Windows'
+        run: python -m unittest discover -s tests -v
+      - name: Test Python on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python -m unittest discover -s tests -v
+      - name: Build self-contained application
+        run: python scripts/build.py --frontend build/frontend
+      - name: Validate frozen app on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $result = Start-Process -FilePath ./dist/SimpleAutoclicker/SimpleAutoclicker.exe -ArgumentList '--smoke-test' -WindowStyle Hidden -PassThru -Wait
+          if ($result.ExitCode -ne 0) { throw 'Frozen application validation failed' }
+          New-Item -ItemType Directory -Force release-assets | Out-Null
+          $version = python -c "from app_version import __version__; print(__version__)"
+          Compress-Archive -Path dist/SimpleAutoclicker -DestinationPath "release-assets/SimpleAutoclicker-$version-windows-x64-portable.zip"
+      - name: Build Windows setup installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $compiler = Get-ChildItem 'C:/Program Files (x86)/Inno Setup*/ISCC.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $compiler) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw 'Could not install Inno Setup' }
+            $compiler = Get-ChildItem 'C:/Program Files (x86)/Inno Setup*/ISCC.exe' | Select-Object -First 1
+          }
+          $version = python -c "from app_version import __version__; print(__version__)"
+          & $compiler.FullName "/DAppVersion=$version" packaging/windows.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
+      - name: Test Windows installation and removal
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem release-assets/*-setup.exe | Select-Object -First 1
+          $installDir = Join-Path $env:RUNNER_TEMP 'autoclicker-install-test'
+          $result = Start-Process -FilePath $installer.FullName -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', "/DIR=$installDir") -WindowStyle Hidden -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw 'Installer failed' }
+          $result = Start-Process -FilePath (Join-Path $installDir 'SimpleAutoclicker.exe') -ArgumentList '--smoke-test' -WindowStyle Hidden -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw 'Installed application failed' }
+          $result = Start-Process -FilePath (Join-Path $installDir 'unins000.exe') -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') -WindowStyle Hidden -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw 'Uninstaller failed' }
+      - name: Validate and package Linux app
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run -a dist/SimpleAutoclicker/SimpleAutoclicker --smoke-test
+          python scripts/package_linux.py
+          desktop-file-validate packaging/simple-autoclicker.desktop
+          sudo apt-get install -y ./release-assets/*.deb
+          xvfb-run -a /opt/simple-autoclicker/SimpleAutoclicker --smoke-test
+          sudo apt-get remove -y simple-autoclicker
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages-${{ runner.os }}
+          path: release-assets/*
+          if-no-files-found: error
+
+  draft-release:
+    if: inputs.create_release
+    needs: package
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: packages-*
+          merge-multiple: true
+          path: release-assets
+      - name: Create checksums and draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version=$(python -c "from app_version import __version__; print(__version__)")
+          (cd release-assets && sha256sum *.exe *.zip *.deb *.tar.gz > SHA256SUMS.txt)
+          gh release create "v$version" release-assets/* --target "$GITHUB_SHA" --title "Simple Autoclicker v$version" --notes-file RELEASE_NOTES.md --draft

@@ -4,7 +4,29 @@
 
 A simple desktop interface for scheduling mouse clicks, keyboard keys, shortcuts, and mixed action patterns on **Windows or Linux (X11)**. Uses a local shadcn/ui interface connected to Python 3.10+, Tkinter, and pynput. The interface opens in your browser and follows the system light/dark theme. No cloud service or Node.js installation is needed to run the bundled app.
 
-## Windows
+## Install the app
+
+Download the first public release from [GitHub Releases](https://github.com/aliabedi1/simple-autoclicker/releases/latest). Packaged builds include Python and the interface; you do not need Python or Node.js installed.
+
+### Windows x64
+
+Run `SimpleAutoclicker-0.1.0-windows-x64-setup.exe`. It installs for your user account, adds a Start menu entry, offers a desktop shortcut, and includes an uninstaller. Windows packages are unsigned. The portable ZIP is an alternative: extract the entire folder and run `SimpleAutoclicker.exe`.
+
+### Linux x64
+
+Ubuntu 22.04+/Debian 12+: download the `.deb`, then run:
+
+```sh
+sudo apt install ./SimpleAutoclicker-0.1.0-linux-amd64.deb
+```
+
+Open **Simple Autoclicker** in your applications menu or run `simple-autoclicker`. Uninstall with `sudo apt remove simple-autoclicker`.
+
+Other distributions can extract the `.tar.gz` and run `./SimpleAutoclicker/SimpleAutoclicker`. Requires glibc 2.35+, an X11/Xorg desktop, X11/XTest/Xi/Xss, fontconfig/freetype, and `xdg-open` from xdg-utils. Wayland is unsupported. Disable automatic sleep on Linux while waiting.
+
+`SHA256SUMS.txt` accompanies each release. On Linux use `sha256sum -c SHA256SUMS.txt` alongside the downloaded packages, or compare a Windows download using `Get-FileHash -Algorithm SHA256 <file>`.
+
+## Run from source on Windows
 
 Install Python from [python.org](https://www.python.org/downloads/windows/) with the Python launcher and Tcl/Tk components enabled. In a terminal opened in this folder, run once:
 
@@ -15,7 +37,7 @@ py -3 -m venv .venv
 
 Then double-click **Start Clicker.cmd**.
 
-## Linux
+## Run from source on Linux
 
 Use an **X11/Xorg desktop session**. Wayland is not supported: log out and choose an X11/Xorg session from your login screen if available. The app detects Wayland and explains this requirement instead of silently failing to click other applications. See [pynput's platform limitations](https://pynput.readthedocs.io/en/latest/limitations.html).
 
@@ -98,3 +120,15 @@ npx playwright test
 Frontend development needs a Node.js version supported by the checked-in Vite version. Browser tests use installed Chrome and a fake mouse backend, exercising real local API calls and UI timers without injecting clicks into other applications. Install Python dependencies into the project's `.venv` first. On headless Linux, run the tests under Xvfb. The older native tests remain available through `python -m unittest discover -s tests -v`.
 
 `desktop.py` binds to a random port on `127.0.0.1` only. API actions require a per-launch token and reject foreign origins. The interface and fonts are served locally. Browser errors such as missing setup or expired sessions direct you back to the launcher.
+
+## Build installers
+
+Build on the target OS; PyInstaller cannot cross-compile. Install Python build dependencies with `python -m pip install -r requirements-build.txt`, build the frontend, then run:
+
+```sh
+python scripts/build.py
+```
+
+This writes the self-contained app to `dist/SimpleAutoclicker/`. On Windows, compile `packaging/windows.iss` with Inno Setup. On Linux, run `python scripts/package_linux.py` to create the `.deb` and portable `.tar.gz`. Use the packaged binary's `--smoke-test` flag to validate the interface, icon, Tk, and native input backends without emitting input or opening a browser.
+
+The **Build installers** GitHub Actions workflow builds and tests the frontend, runs Python tests on Windows and Linux, creates packages, and tests installation/removal. Run it with **Create a draft release** enabled to assemble the version from `app_version.py` and `RELEASE_NOTES.md`. It creates a draft only after both platforms pass; verify checksums and assets before publishing. Build tools and bundled dependency license notices are preserved with each package.

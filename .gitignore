@@ -6,3 +6,6 @@ node_modules/
 .impeccable/mocks/
 .impeccable/live/
 web/.vite/
+/build/
+/dist/
+/release-assets/

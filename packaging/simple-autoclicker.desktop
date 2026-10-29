@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Simple Autoclicker
+Comment=Schedule mouse and keyboard actions on your desktop
+Exec=/opt/simple-autoclicker/SimpleAutoclicker
+Icon=simple-autoclicker
+Terminal=false
+Categories=Utility;Accessibility;
+StartupNotify=true

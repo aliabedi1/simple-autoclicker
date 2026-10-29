@@ -18,6 +18,7 @@ import webbrowser
 
 from autoclicker import ClickerApp, Mouse
 from schedule import ClickStep
+from app_version import __version__
 
 ROOT = Path(__file__).resolve().parent
 SETTING_NAMES = ('target_mode', 'x', 'y', 'interval', 'unit', 'start_mode', 'delay',
@@ -198,6 +199,28 @@ def make_server(bridge, dist=ROOT / 'web' / 'dist'):
 
 
 def main():
+    if '--version' in sys.argv:
+        if sys.stdout is not None:
+            print(f'Simple Autoclicker {__version__}')
+        return 0
+    if '--smoke-test' in sys.argv:
+        # Package validation must never emit input or open a browser/dialog.
+        root = None
+        try:
+            root = tk.Tk()
+            root.withdraw()
+            assert (ROOT / 'web' / 'dist' / 'index.html').is_file(), 'Missing bundled interface'
+            assert (ROOT / 'assets' / 'icon.ico').is_file(), 'Missing bundled icon'
+            app = ClickerApp(root, Mouse())
+            assert app.icon.width() > 0
+            return 0
+        except Exception as error:
+            if sys.stderr is not None:
+                print(f'Package validation failed: {error}', file=sys.stderr)
+            return 1
+        finally:
+            if root is not None:
+                root.destroy()
     if sys.platform == 'win32':
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('SimpleAutoclicker.Desktop')
         try:
