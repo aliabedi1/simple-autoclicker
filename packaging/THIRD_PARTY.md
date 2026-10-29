@@ -4,7 +4,8 @@ The distribution includes Python, Tcl/Tk, pynput, and their runtime dependencies
 License texts found in the build environment are preserved under `_internal/licenses`.
 `BUILD-INFO.json` records the exact packaged versions. The browser interface includes
 React, Radix, shadcn/ui, Lucide, Tailwind CSS, and Geist; Geist's license is served with
-the bundled assets. Source and dependency manifests are available from:
+the bundled assets. JavaScript dependency notices and a version manifest are
+preserved under `_internal/web/dist/assets/licenses`. Source and dependency manifests are available from:
 
 - Application: https://github.com/aliabedi1/simple-autoclicker
 - Python (PSF license): https://www.python.org/downloads/source/
