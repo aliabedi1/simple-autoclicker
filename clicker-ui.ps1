@@ -22,6 +22,7 @@ $script:pickAt = $null
 $script:clickPoint = $null
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'Simple Autoclicker'
+$form.Icon = New-Object System.Drawing.Icon((Join-Path $PSScriptRoot 'assets\icon.ico'))
 $form.ClientSize = New-Object System.Drawing.Size(440, 440)
 $form.StartPosition = 'CenterScreen'
 $form.FormBorderStyle = 'FixedSingle'

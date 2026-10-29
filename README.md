@@ -1,5 +1,7 @@
 # Simple Autoclicker
 
+<img src="assets/icon.png" alt="Simple Autoclicker: a mouse pointer with a golden clock on a blue tile" width="96" height="96">
+
 A simple desktop interface for scheduling one left mouse click on **Windows or Linux (X11)**. Uses Python 3.10+, Tkinter, and pynput.
 
 ## Windows

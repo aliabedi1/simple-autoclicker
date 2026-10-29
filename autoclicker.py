@@ -4,6 +4,7 @@ import ctypes
 from datetime import datetime, timedelta
 import math
 import os
+from pathlib import Path
 import sys
 import time
 import tkinter as tk
@@ -67,6 +68,11 @@ class ClickerApp:
         self.point = None
         self.job = None
         root.title("Simple Autoclicker")
+        assets = Path(__file__).resolve().parent / "assets"
+        self.icon = tk.PhotoImage(master=root, file=str(assets / "icon.png"))
+        root.iconphoto(True, self.icon)
+        if sys.platform == "win32":
+            root.iconbitmap(str(assets / "icon.ico"))
         root.configure(background="#F3F6FA")
         root.resizable(True, True)
         root.protocol("WM_DELETE_WINDOW", self.close)
@@ -221,6 +227,7 @@ class ClickerApp:
 
 def main():
     if sys.platform == "win32":
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("SimpleAutoclicker.Desktop")
         # Keep captured and injected coordinates consistent on scaled displays.
         try:
             ctypes.windll.shcore.SetProcessDpiAwareness(2)
