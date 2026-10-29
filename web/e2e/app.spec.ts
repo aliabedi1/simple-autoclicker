@@ -72,12 +72,10 @@ test("desktop controls and patterns work in the system theme", async ({
     fullPage: true,
   })
   await page.getByLabel("Start delay, in seconds").fill("0")
-  await page.getByLabel("Number of clicks").fill("2")
-  await page.getByLabel("Wait between clicks").fill("0.05")
-  await page
-    .getByRole("button", { name: "Start clicking", exact: true })
-    .click()
-  await expect(page.getByText("Completed 2 click(s).")).toBeVisible()
+  await page.getByLabel("Number of actions").fill("2")
+  await page.getByLabel("Wait between actions").fill("0.05")
+  await page.getByRole("button", { name: "Start actions", exact: true }).click()
+  await expect(page.getByText("Completed 2 action(s).")).toBeVisible()
 
   await page.getByRole("radio", { name: "Click pattern", exact: true }).click()
   await expect(page.getByText("Build your first pattern")).toBeVisible()
@@ -85,7 +83,7 @@ test("desktop controls and patterns work in the system theme", async ({
   const dialog = page.getByRole("dialog")
   await dialog.getByLabel("X position").fill("10")
   await dialog.getByLabel("Y position").fill("20")
-  await dialog.getByLabel("Wait after click, in seconds").fill("0.05")
+  await dialog.getByLabel("Wait after action, in seconds").fill("0.05")
   await page.screenshot({
     path: `test-results/${testInfo.project.name}-dialog.png`,
     fullPage: true,
@@ -94,7 +92,7 @@ test("desktop controls and patterns work in the system theme", async ({
   await page.getByRole("button", { name: "Add step", exact: true }).click()
   await dialog.getByLabel("X position").fill("30")
   await dialog.getByLabel("Y position").fill("40")
-  await dialog.getByLabel("Wait after click, in seconds").fill("0.05")
+  await dialog.getByLabel("Wait after action, in seconds").fill("0.05")
   await dialog.getByRole("button", { name: "Add step", exact: true }).click()
   await page.getByRole("button", { name: "Move step 2 up" }).click()
   await expect(page.getByRole("row").nth(1)).toContainText("30, 40")
@@ -103,10 +101,8 @@ test("desktop controls and patterns work in the system theme", async ({
     path: `test-results/${testInfo.project.name}-pattern.png`,
     fullPage: true,
   })
-  await page
-    .getByRole("button", { name: "Start clicking", exact: true })
-    .click()
-  await expect(page.getByText("Completed 4 click(s).")).toBeVisible()
+  await page.getByRole("button", { name: "Start actions", exact: true }).click()
+  await expect(page.getByText("Completed 4 action(s).")).toBeVisible()
   await page.getByRole("radio", { name: "Date & time", exact: true }).click()
   await expect(page.getByLabel("Start date", { exact: true })).toBeVisible()
   await page.getByRole("radio", { name: "End date", exact: true }).click()
@@ -128,16 +124,70 @@ test("desktop controls and patterns work in the system theme", async ({
   await page.getByRole("radio", { name: "After a delay", exact: true }).click()
   await page.getByRole("radio", { name: "By count", exact: true }).click()
   await page.getByLabel("Start delay, in seconds").fill("10")
-  await page
-    .getByRole("button", { name: "Start clicking", exact: true })
-    .click()
+  await page.getByRole("button", { name: "Start actions", exact: true }).click()
   await expect(page.getByText("Running", { exact: true })).toBeVisible()
   await page.getByRole("button", { name: /Stop/ }).click()
-  await expect(page.getByText("Cancelled. 0 click(s) completed.")).toBeVisible()
+  await expect(
+    page.getByText("Cancelled. 0 action(s) completed.")
+  ).toBeVisible()
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth
   )
   expect(overflow).toBe(false)
+  // A keyboard action uses the focused app and needs no point.
+  await page.getByRole("radio", { name: "Single action", exact: true }).click()
+  await page.getByLabel("Action", { exact: true }).click()
+  await page.getByRole("option", { name: "Keyboard key", exact: true }).click()
+  await page.getByLabel("Key or shortcut").fill("ctrl+s")
+  await expect(page.getByLabel("X position", { exact: true })).toHaveCount(0)
+  await page.getByLabel("Start delay, in seconds").fill("0")
+  await page.getByRole("button", { name: "Start actions", exact: true }).click()
+  await expect(page.getByText("Completed 2 action(s).")).toBeVisible()
+  await page.screenshot({
+    path: `test-results/${testInfo.project.name}-keyboard.png`,
+    fullPage: true,
+  })
+
+  // Mix right-click and keyboard steps, save their action fields, and load a legacy pattern.
+  await page.getByRole("radio", { name: "Click pattern", exact: true }).click()
+  await page.getByRole("button", { name: "Edit step 1" }).click()
+  await dialog.getByLabel("Action", { exact: true }).click()
+  await page.getByRole("option", { name: "Right click", exact: true }).click()
+  await dialog.getByRole("button", { name: "Save step" }).click()
+  await page.getByRole("button", { name: "Add step", exact: true }).click()
+  await dialog.getByLabel("Action", { exact: true }).click()
+  await page.getByRole("option", { name: "Keyboard key", exact: true }).click()
+  await dialog.getByLabel("Key or shortcut").fill("enter")
+  await dialog.getByLabel("Wait after action, in seconds").fill("0.05")
+  await dialog.getByRole("button", { name: "Add step", exact: true }).click()
+  await page.getByLabel("Number of cycles").fill("1")
+  await page.getByRole("button", { name: "Start actions", exact: true }).click()
+  await expect(page.getByText("Completed 3 action(s).")).toBeVisible()
+  await expect(page.getByRole("row").nth(1)).toContainText("Right click")
+  await expect(page.getByRole("row").nth(3)).toContainText("enter")
+  const mixedEvent = page.waitForEvent("download")
+  await page.getByRole("button", { name: "Save", exact: true }).click()
+  const mixed = await mixedEvent
+  const mixedPath = testInfo.outputPath("mixed-pattern.json")
+  await mixed.saveAs(mixedPath)
+  const mixedData = JSON.parse(await readFile(mixedPath, "utf8"))
+  expect(mixedData.version).toBe(2)
+  expect(mixedData.steps[0].action).toBe("right")
+  expect(mixedData.steps[2].key).toBe("enter")
+  await page.screenshot({
+    path: `test-results/${testInfo.project.name}-mixed.png`,
+    fullPage: true,
+  })
+  const legacyPath = testInfo.outputPath("legacy-pattern.json")
+  await (
+    await import("node:fs/promises")
+  ).writeFile(
+    legacyPath,
+    JSON.stringify({ version: 1, steps: [{ x: 10, y: 20, delay: 0.1 }] })
+  )
+  await page.locator("input[type=file]").setInputFiles(legacyPath)
+  await expect(page.getByRole("row")).toHaveCount(2)
+  await expect(page.getByRole("row").nth(1)).toContainText("Left click")
   expect(errors).toEqual([])
   await page.getByRole("button", { name: "Quit app", exact: true }).click()
   await expect(page.getByRole("heading", { name: "App closed" })).toBeVisible()

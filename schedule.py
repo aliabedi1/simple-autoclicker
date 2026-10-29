@@ -4,6 +4,34 @@ from dataclasses import dataclass
 from datetime import datetime
 import math
 
+MOUSE_ACTIONS = ('left', 'right', 'middle')
+KEY_NAMES = frozenset(('enter', 'space', 'tab', 'esc', 'backspace', 'delete', 'insert',
+                       'home', 'end', 'page_up', 'page_down', 'up', 'down', 'left', 'right',
+                       'ctrl', 'alt', 'shift', 'cmd', 'caps_lock') + tuple(f'f{i}' for i in range(1, 25)))
+KEY_ALIASES = {'escape': 'esc', 'return': 'enter', 'spacebar': 'space', 'control': 'ctrl',
+               'windows': 'cmd', 'win': 'cmd', 'super': 'cmd', 'pgup': 'page_up', 'pgdn': 'page_down',
+               'arrowup': 'up', 'arrowdown': 'down', 'arrowleft': 'left', 'arrowright': 'right', 'plus': '+'}
+
+
+def parse_keys(value):
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError('Enter a keyboard key or shortcut, such as enter, space, or ctrl+s.')
+    parts = tuple(KEY_ALIASES.get(p.strip().lower(), p.strip().lower()) for p in value.split('+'))
+    if (len(parts) > 5 or len(set(parts)) != len(parts)
+            or any(p not in ('ctrl', 'alt', 'shift', 'cmd') for p in parts[:-1])
+            or not (parts[-1] in KEY_NAMES or (len(parts[-1]) == 1 and parts[-1].isprintable() and not parts[-1].isspace()))):
+        raise ValueError('Use a character, a named key (enter, space, arrows, F1-F24), or a shortcut like ctrl+shift+s.')
+    return parts
+
+
+def validate_action(action, key):
+    if action not in (*MOUSE_ACTIONS, 'key'):
+        raise ValueError('Choose left, right, middle, or keyboard as the action.')
+    if not isinstance(key, str):
+        raise ValueError('The keyboard key must be text.')
+    if action == 'key':
+        parse_keys(key)
+
 
 def read_datetime(date, clock, label):
     try:
@@ -27,8 +55,11 @@ class ClickStep:
     x: int
     y: int
     delay: float = 1
+    action: str = 'left'
+    key: str = ''
 
     def __post_init__(self):
+        validate_action(self.action, self.key)
         if type(self.x) is not int or type(self.y) is not int:
             raise ValueError('Step coordinates must be whole numbers.')
         if not math.isfinite(self.delay) or not 0.05 <= self.delay <= 315360000:
@@ -46,8 +77,11 @@ class ClickPlan:
     limit: int | None = 1
     end_at: datetime | None = None
     pattern: tuple[ClickStep, ...] = ()
+    action: str = 'left'
+    key: str = ''
 
     def __post_init__(self):
+        validate_action(self.action, self.key)
         if not math.isfinite(self.interval) or self.interval < 0.05:
             raise ValueError("Delay between clicks must be at least 0.05 seconds.")
         if self.limit is not None and (not isinstance(self.limit, int) or self.limit < 1):

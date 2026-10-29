@@ -21,7 +21,7 @@ from schedule import ClickStep
 
 ROOT = Path(__file__).resolve().parent
 SETTING_NAMES = ('target_mode', 'x', 'y', 'interval', 'unit', 'start_mode', 'delay',
-                 'start_date', 'clock', 'stop_mode', 'count', 'end_date', 'end_clock')
+                 'start_date', 'clock', 'stop_mode', 'count', 'end_date', 'end_clock', 'action', 'key')
 
 
 class DesktopBridge:
@@ -35,7 +35,7 @@ class DesktopBridge:
         run = self.app.run
         return {
             'settings': {name: getattr(self.app, name).get() for name in SETTING_NAMES},
-            'pattern': [dict(x=s.x, y=s.y, delay=s.delay) for s in self.app.pattern],
+            'pattern': [dict(x=s.x, y=s.y, delay=s.delay, action=s.action, key=s.key) for s in self.app.pattern],
             'running': run is not None,
             'picking': self.app.overlay is not None,
             'status': self.app.status.get().strip(),
@@ -76,7 +76,8 @@ class DesktopBridge:
         if not isinstance(settings, dict):
             raise ValueError('Settings must be an object.')
         choices = {'target_mode': ('single', 'pattern'), 'unit': ('seconds', 'minutes', 'milliseconds'),
-                   'start_mode': ('delay', 'date'), 'stop_mode': ('count', 'date')}
+                   'start_mode': ('delay', 'date'), 'stop_mode': ('count', 'date'),
+                   'action': ('left', 'right', 'middle', 'key')}
         for name, options in choices.items():
             if name in settings and settings[name] not in options:
                 raise ValueError(f'Invalid {name}.')

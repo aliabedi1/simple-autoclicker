@@ -11,7 +11,7 @@ import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from schedule import ClickPlan, ClickRun, ClickStep, read_datetime, read_seconds
+from schedule import ClickPlan, ClickRun, ClickStep, parse_keys, validate_action, read_datetime, read_seconds
 
 
 class Mouse:
@@ -28,6 +28,7 @@ class Mouse:
                 raise RuntimeError("Run this app from your Linux desktop with an X11 display.")
         try:
             from pynput.mouse import Button, Controller
+            from pynput.keyboard import Key, Controller as KeyboardController
         except ImportError as error:
             raise RuntimeError(
                 "Mouse control is unavailable. Install the dependencies with:\n"
@@ -35,15 +36,40 @@ class Mouse:
             ) from error
         self.controller = Controller()
         self.left = Button.left
+        self.buttons = {'left': Button.left, 'right': Button.right, 'middle': Button.middle}
+        self.keyboard = KeyboardController()
+        self.key_enum = Key
 
     def position(self):
         return self.controller.position
 
     def click(self, point):
+        self.perform(point)
+
+    def perform(self, point, action='left', key=''):
+        validate_action(action, key)
+        if action == 'key':
+            keys = [getattr(self.key_enum, name) if len(name) > 1 else name for name in parse_keys(key)]
+            pressed = []
+            try:
+                for button in keys:
+                    # Track before pressing so failures still attempt a release.
+                    pressed.append(button)
+                    self.keyboard.press(button)
+            finally:
+                first_error = None
+                for button in reversed(pressed):
+                    try:
+                        self.keyboard.release(button)
+                    except Exception as error:
+                        first_error = first_error or error
+                if first_error is not None:
+                    raise first_error
+            return
         self.controller.position = point
         if tuple(self.controller.position) != tuple(point):
             raise RuntimeError("Could not reach that screen position. Pick a new position.")
-        self.controller.click(self.left)
+        self.controller.click(self.buttons[action])
 
     def keep_awake(self, enabled):
         if sys.platform == "win32":
@@ -64,6 +90,8 @@ class ClickerApp:
         self.pattern_editor = None
         self.pick_callback = None
         self.editors = []
+        self.action = tk.StringVar(master=root, value='left')
+        self.key = tk.StringVar(master=root, value='enter')
         root.title('Simple Autoclicker')
         assets = Path(__file__).resolve().parent / 'assets'
         self.icon = tk.PhotoImage(master=root, file=str(assets / 'icon.png'))
@@ -121,6 +149,12 @@ class ClickerApp:
         self.target_hint = tk.StringVar(value='Pick point, then click the spot on your screen. Esc cancels.')
         ttk.Label(target, textvariable=self.target_hint).grid(
             row=2, column=0, columnspan=5, sticky='w', pady=(8, 0))
+        self.action_box = ttk.Combobox(target, textvariable=self.action, values=('left', 'right', 'middle', 'key'),
+                                      state='readonly', width=13)
+        self.action_box.grid(row=3, column=0, columnspan=2, sticky='ew', pady=(6, 0))
+        self.key_entry = self.entry(target, self.key, 3, 3, 12)
+        self.editors.extend((self.action_box,))
+        ttk.Label(target, text='Key / shortcut').grid(row=3, column=2, padx=6)
 
         pace = self.section(frame, 'Repeat', 3)
         ttk.Label(pace, text='Delay between clicks').grid(row=0, column=0, sticky='w', padx=(0, 12))
@@ -151,7 +185,7 @@ class ClickerApp:
         end = now + timedelta(hours=1)
         self.end_date = tk.StringVar(value=end.strftime('%Y-%m-%d'))
         self.end_clock = tk.StringVar(value=end.strftime('%H:%M:%S'))
-        self.count_label = tk.StringVar(value='After this many clicks')
+        self.count_label = tk.StringVar(value='After this many actions')
         count_radio = ttk.Radiobutton(stop, textvariable=self.count_label, variable=self.stop_mode, value='count')
         count_radio.grid(row=0, column=0, sticky='w', padx=(0, 12), pady=2)
         self.editors.append(count_radio)
@@ -177,6 +211,7 @@ class ClickerApp:
         self.start_mode.trace_add('write', lambda *args: self.set_busy(False))
         self.stop_mode.trace_add('write', lambda *args: self.set_busy(False))
         self.target_mode.trace_add('write', lambda *args: self.set_busy(False))
+        self.action.trace_add('write', lambda *args: self.set_busy(False))
         self.set_busy(False)
         root.update_idletasks()
         root.minsize(root.winfo_reqwidth(), root.winfo_reqheight())
@@ -207,7 +242,12 @@ class ClickerApp:
                 widget.configure(state='disabled' if pattern_mode else 'normal')
             if not pattern_mode:
                 self.unit_box.configure(state='readonly')
-            self.count_label.set('After this many cycles' if pattern_mode else 'After this many clicks')
+            self.action_box.configure(state='disabled' if pattern_mode else 'readonly')
+            self.key_entry.configure(state='normal' if not pattern_mode and self.action.get() == 'key' else 'disabled')
+            if self.action.get() == 'key':
+                for widget in (self.x_entry, self.y_entry, self.pick_button):
+                    widget.configure(state='disabled')
+            self.count_label.set('After this many cycles' if pattern_mode else 'After this many actions')
             self.target_hint.set(f'{len(self.pattern)} steps. Edit pattern to add or reorder points.' if pattern_mode else
                                  'Pick point, then click the spot on your screen. Esc cancels.')
             self.delay_entry.configure(state='normal' if self.start_mode.get() == 'delay' else 'disabled')
@@ -266,7 +306,8 @@ class ClickerApp:
                 limit *= len(pattern)
         else:
             end = read_datetime(self.end_date.get(), self.end_clock.get(), 'End')
-        return ClickPlan(start, interval, limit, end, pattern)
+        return ClickPlan(start, interval, limit, end, pattern,
+                         'left' if pattern else self.action.get(), '' if pattern else self.key.get())
 
     def schedule(self):
         if self.run is not None or self.overlay is not None:
@@ -276,8 +317,10 @@ class ClickerApp:
             if plan.pattern:
                 point = plan.pattern[0].point
                 for index, step in enumerate(plan.pattern, 1):
-                    if not self.valid_point(*step.point):
+                    if step.action != 'key' and not self.valid_point(*step.point):
                         raise ValueError(f'Pattern step {index} is outside your screens. Edit that point.')
+            elif plan.action == 'key':
+                point = (0, 0)
             else:
                 try:
                     point = (int(self.x.get()), int(self.y.get()))
@@ -346,12 +389,15 @@ class ClickerApp:
             run = self.run
             now, monotonic = datetime.now(), time.monotonic()
             if run.ready(now, monotonic):
-                self.point = run.current_step.point if run.current_step is not None else self.point
-                self.mouse.click(self.point)
+                step = run.current_step
+                self.point = step.point if step is not None else self.point
+                action = step.action if step is not None else run.plan.action
+                key = step.key if step is not None else run.plan.key
+                self.mouse.perform(self.point, action, key)
                 run.record_click(time.monotonic())
                 self.last_completed = run.completed
             if not run.active:
-                self.finish(f'Completed {run.completed} click(s).')
+                self.finish(f'Completed {run.completed} action(s).')
                 return
             remaining = math.ceil(run.remaining(datetime.now(), time.monotonic()))
             hours, rest = divmod(remaining, 3600)
@@ -360,14 +406,14 @@ class ClickerApp:
             timing = (f'Starts {run.plan.start_at:%Y-%m-%d %H:%M:%S}' if run.completed == 0 else
                       f'Ends {run.plan.end_at:%Y-%m-%d %H:%M:%S}' if run.plan.end_at else
                       f'Clicking at X={self.point[0]}, Y={self.point[1]}')
-            self.status.set(f'{run.completed}{total} clicks completed\n'
+            self.status.set(f'{run.completed}{total} actions completed\n'
                             f'Next click in {hours:02}:{minutes:02}:{seconds:02}\n{timing}')
             if run.plan.pattern:
                 size = len(run.plan.pattern)
-                self.status.set(f'{run.completed}{total} clicks | {run.completed // size} cycles completed\n'
+                self.status.set(f'{run.completed}{total} actions | {run.completed // size} cycles completed\n'
                                 f'Next: step {run.completed % size + 1} / {size} in {hours:02}:{minutes:02}:{seconds:02}\n{timing}')
         except Exception as error:
-            self.finish(f'Stopped after {self.run.completed} click(s): {error}')
+            self.finish(f'Stopped after {self.run.completed} action(s): {error}')
             return
         self.job = self.root.after(50, self.tick)
 
@@ -393,7 +439,7 @@ class ClickerApp:
 
     def cancel(self):
         count = self.run.completed if self.run is not None else 0
-        self.finish(f'Cancelled. {count} click(s) completed.')
+        self.finish(f'Cancelled. {count} action(s) completed.')
 
     def close(self):
         if self.pattern_editor is not None:
@@ -418,10 +464,10 @@ class PatternEditor:
         frame.columnconfigure(0, weight=1)
         frame.rowconfigure(1, weight=1)
         ttk.Label(frame, text='Build your click sequence', style='Title.TLabel').grid(row=0, sticky='w', pady=(0, 10))
-        self.tree = ttk.Treeview(frame, columns=('step', 'x', 'y', 'delay'), show='headings', height=6,
+        self.tree = ttk.Treeview(frame, columns=('step', 'x', 'y', 'delay', 'action'), show='headings', height=6,
                                  selectmode='browse')
         for name, title, width in (('step', 'Step', 55), ('x', 'X', 95), ('y', 'Y', 95),
-                                   ('delay', 'Wait after click (s)', 160)):
+                                   ('delay', 'Wait after (s)', 130), ('action', 'Action', 120)):
             self.tree.heading(name, text=title)
             self.tree.column(name, width=width, minwidth=45, anchor='center')
         self.tree.grid(row=1, sticky='nsew')
@@ -439,10 +485,16 @@ class PatternEditor:
         self.x = tk.StringVar(value=app.x.get())
         self.y = tk.StringVar(value=app.y.get())
         self.delay = tk.StringVar(value='1')
+        self.action = tk.StringVar(value='left')
+        self.key = tk.StringVar(value='enter')
         for column, (label, variable) in enumerate((('X', self.x), ('Y', self.y), ('Wait after (seconds)', self.delay))):
             ttk.Label(fields, text=label).grid(row=0, column=column, sticky='w')
             ttk.Entry(fields, textvariable=variable, width=16).grid(row=1, column=column, padx=(0, 8), sticky='ew')
             fields.columnconfigure(column, weight=1)
+        ttk.Combobox(fields, textvariable=self.action, values=('left', 'right', 'middle', 'key'),
+                     state='readonly', width=16).grid(row=2, column=0, sticky='ew', pady=8)
+        ttk.Label(fields, text='Key / shortcut').grid(row=2, column=1)
+        ttk.Entry(fields, textvariable=self.key, width=16).grid(row=2, column=2, sticky='ew')
         actions = ttk.Frame(frame)
         actions.grid(row=4, sticky='ew', pady=10)
         for column, (label, command) in enumerate((('Pick point', self.pick), ('Add step', self.add),
@@ -463,7 +515,8 @@ class PatternEditor:
     def refresh(self, selection=None):
         self.tree.delete(*self.tree.get_children())
         for index, step in enumerate(self.steps):
-            self.tree.insert('', 'end', iid=str(index), values=(index + 1, step.x, step.y, f'{step.delay:g}'))
+            self.tree.insert('', 'end', iid=str(index), values=(index + 1, step.x, step.y, f'{step.delay:g}',
+                                                              step.key if step.action == 'key' else step.action))
         if selection is not None and 0 <= selection < len(self.steps):
             self.tree.selection_set(str(selection))
             self.tree.see(str(selection))
@@ -482,15 +535,19 @@ class PatternEditor:
             self.x.set(str(step.x))
             self.y.set(str(step.y))
             self.delay.set(f'{step.delay:g}')
+            self.action.set(step.action)
+            self.key.set(step.key)
 
     def read_step(self):
+        if self.action.get() == 'key':
+            return ClickStep(0, 0, read_seconds(self.delay.get(), 'Step delay', minimum=0.05), 'key', self.key.get())
         try:
             x, y = int(self.x.get()), int(self.y.get())
         except ValueError:
             raise ValueError('Enter whole numbers for X and Y.') from None
         if not self.app.valid_point(x, y):
             raise ValueError('That point is outside your screens. Pick it again.')
-        return ClickStep(x, y, read_seconds(self.delay.get(), 'Step delay', minimum=0.05))
+        return ClickStep(x, y, read_seconds(self.delay.get(), 'Step delay', minimum=0.05), self.action.get(), '')
 
     def add(self):
         try:
@@ -546,7 +603,7 @@ class PatternEditor:
                                            filetypes=[('Click patterns', '*.json')])
         if path:
             try:
-                data = {'version': 1, 'steps': [dict(x=s.x, y=s.y, delay=s.delay) for s in self.steps]}
+                data = {'version': 2, 'steps': [dict(x=s.x, y=s.y, delay=s.delay, action=s.action, key=s.key) for s in self.steps]}
                 Path(path).write_text(json.dumps(data, indent=2), encoding='utf-8')
                 self.status.set('Pattern saved.')
             except OSError as error:
@@ -557,8 +614,8 @@ class PatternEditor:
         if path:
             try:
                 data = json.loads(Path(path).read_text(encoding='utf-8'))
-                if not isinstance(data, dict) or data.get('version') != 1 or not isinstance(data.get('steps'), list):
-                    raise ValueError('Choose a version 1 click pattern JSON file.')
+                if not isinstance(data, dict) or data.get('version') not in (1, 2) or not isinstance(data.get('steps'), list):
+                    raise ValueError('Choose a version 1 or 2 pattern JSON file.')
                 steps = [ClickStep(**step) for step in data['steps']]
                 if not steps:
                     raise ValueError('The pattern contains no steps.')

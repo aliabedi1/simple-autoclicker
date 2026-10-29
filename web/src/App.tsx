@@ -72,16 +72,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { ActionFields } from "@/components/action-fields"
 import { useTheme } from "@/components/theme-provider"
 import {
   api,
   decodePattern,
+  ACTION_LABELS,
+  isShortcut,
+  type Action,
   type DesktopState,
   type Settings,
   type Step,
 } from "@/lib/desktop"
 
 const initial: Settings = {
+  action: "left",
+  key: "enter",
   target_mode: "single",
   x: "0",
   y: "0",
@@ -97,6 +103,8 @@ const initial: Settings = {
   end_clock: "",
 }
 type Draft = {
+  action: Action
+  key: string
   id: string
   x: string
   y: string
@@ -231,16 +239,18 @@ export default function App() {
       y: String(step?.y ?? form.y),
       delay: String(step?.delay ?? 1),
       editing: Boolean(step),
+      action: step?.action ?? "left",
+      key: step?.key || "enter",
     })
   }
   function applyDraft() {
     if (!draft) return
-    const x = Number(draft.x),
-      y = Number(draft.y),
+    const x = draft.action === "key" ? 0 : Number(draft.x),
+      y = draft.action === "key" ? 0 : Number(draft.y),
       delay = Number(draft.delay)
     if (
-      !draft.x.trim() ||
-      !draft.y.trim() ||
+      (draft.action !== "key" && (!draft.x.trim() || !draft.y.trim())) ||
+      (draft.action === "key" && !isShortcut(draft.key)) ||
       !Number.isInteger(x) ||
       !Number.isInteger(y) ||
       !Number.isFinite(delay) ||
@@ -248,11 +258,18 @@ export default function App() {
       delay > 315360000
     ) {
       setDraftError(
-        "Use whole-number coordinates and a wait between 0.05 and 315360000 seconds."
+        "Use whole-number coordinates, a valid key/shortcut for keyboard actions, and a wait of at least 0.05 seconds."
       )
       return
     }
-    const step = { id: draft.id, x, y, delay }
+    const step = {
+      id: draft.id,
+      x,
+      y,
+      delay,
+      action: draft.action,
+      key: draft.action === "key" ? draft.key : "",
+    }
     setSteps((list) =>
       draft.editing
         ? list.map((s) => (s.id === step.id ? step : s))
@@ -275,8 +292,14 @@ export default function App() {
       [
         JSON.stringify(
           {
-            version: 1,
-            steps: steps.map(({ x, y, delay }) => ({ x, y, delay })),
+            version: 2,
+            steps: steps.map(({ x, y, delay, action, key }) => ({
+              x,
+              y,
+              delay,
+              action,
+              key,
+            })),
           },
           null,
           2
@@ -297,14 +320,14 @@ export default function App() {
     : 0
   const themeIcon = theme === "system" ? Monitor : theme === "dark" ? Moon : Sun
   const ThemeIcon = themeIcon
-  const repeatLabel = pattern ? "cycles" : "clicks"
+  const repeatLabel = pattern ? "cycles" : "actions"
 
   if (closed)
     return (
       <main className="closed-screen">
         <Check className="size-8 text-primary" />
         <h1>App closed</h1>
-        <p>All clicks have stopped. You can close this tab.</p>
+        <p>All actions have stopped. You can close this tab.</p>
         <p>Use the desktop launcher to open Simple Autoclicker again.</p>
       </main>
     )
@@ -354,9 +377,9 @@ export default function App() {
       <main className="workspace">
         <div className="page-heading">
           <div>
-            <h1>Clicks, on your schedule.</h1>
+            <h1>Actions, on your schedule.</h1>
             <p>
-              A single point or a whole sequence. Set it up, then let it run.
+              A single action or a whole sequence. Set it up, then let it run.
             </p>
           </div>
           <Badge variant={desktop?.running ? "default" : "secondary"}>
@@ -388,8 +411,8 @@ export default function App() {
           <section className="setup-panel" aria-labelledby="setup-title">
             <div className="panel-heading">
               <div>
-                <h2 id="setup-title">Click setup</h2>
-                <p>Where to click, and what happens next.</p>
+                <h2 id="setup-title">Action setup</h2>
+                <p>Choose an action and how often it runs.</p>
               </div>
               <MousePointer2 className="section-icon" />
             </div>
@@ -404,7 +427,7 @@ export default function App() {
             >
               <ToggleGroupItem value="single">
                 <MousePointer2 />
-                Single point
+                Single action
               </ToggleGroupItem>
               <ToggleGroupItem value="pattern">
                 <Route />
@@ -413,49 +436,61 @@ export default function App() {
             </ToggleGroup>
             {!pattern ? (
               <div className="single-setup">
-                <FieldGroup className="coordinate-fields">
-                  <Field data-disabled={busy}>
-                    <FieldLabel htmlFor="point-x">X position</FieldLabel>
-                    <Input
-                      id="point-x"
-                      type="number"
-                      step="1"
-                      value={form.x}
-                      onChange={(e) => change("x", e.target.value)}
-                      disabled={busy}
-                    />
-                  </Field>
-                  <Field data-disabled={busy}>
-                    <FieldLabel htmlFor="point-y">Y position</FieldLabel>
-                    <Input
-                      id="point-y"
-                      type="number"
-                      step="1"
-                      value={form.y}
-                      onChange={(e) => change("y", e.target.value)}
-                      disabled={busy}
-                    />
-                  </Field>
-                </FieldGroup>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
+                <ActionFields
+                  id="single"
+                  action={form.action}
+                  keyboardKey={form.key}
+                  onAction={(value) => change("action", value)}
+                  onKey={(value) => change("key", value)}
                   disabled={busy}
-                  onClick={() => void action("pick", { id: "single" })}
-                >
-                  <Crosshair data-icon="inline-start" />
-                  Pick a point on screen
-                </Button>
-                <p className="helper">
-                  A crosshair appears over your desktop. Click your target to
-                  capture it.
-                </p>
+                />
+                {form.action !== "key" && (
+                  <>
+                    <FieldGroup className="coordinate-fields">
+                      <Field data-disabled={busy}>
+                        <FieldLabel htmlFor="point-x">X position</FieldLabel>
+                        <Input
+                          id="point-x"
+                          type="number"
+                          step="1"
+                          value={form.x}
+                          onChange={(e) => change("x", e.target.value)}
+                          disabled={busy}
+                        />
+                      </Field>
+                      <Field data-disabled={busy}>
+                        <FieldLabel htmlFor="point-y">Y position</FieldLabel>
+                        <Input
+                          id="point-y"
+                          type="number"
+                          step="1"
+                          value={form.y}
+                          onChange={(e) => change("y", e.target.value)}
+                          disabled={busy}
+                        />
+                      </Field>
+                    </FieldGroup>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="w-full"
+                      disabled={busy}
+                      onClick={() => void action("pick", { id: "single" })}
+                    >
+                      <Crosshair data-icon="inline-start" />
+                      Pick a point on screen
+                    </Button>
+                    <p className="helper">
+                      A crosshair appears over your desktop. Click your target
+                      to capture it.
+                    </p>
+                  </>
+                )}
                 <Separator />
                 <FieldGroup className="interval-fields">
                   <Field data-disabled={busy}>
                     <FieldLabel htmlFor="interval">
-                      Wait between clicks
+                      Wait between actions
                     </FieldLabel>
                     <Input
                       id="interval"
@@ -498,19 +533,21 @@ export default function App() {
                   </Field>
                 </FieldGroup>
                 <p className="helper">
-                  Each repetition is one left click. Minimum wait: 50
+                  Each repetition performs the selected action. Minimum wait: 50
                   milliseconds.
                 </p>
-                <div className="point-explainer">
-                  <Crosshair className="size-6" />
-                  <div>
-                    <h3>Your target stays fixed</h3>
-                    <p>
-                      Every click returns to this screen position, even if you
-                      move the pointer.
-                    </p>
+                {form.action !== "key" && (
+                  <div className="point-explainer">
+                    <Crosshair className="size-6" />
+                    <div>
+                      <h3>Your target stays fixed</h3>
+                      <p>
+                        Every click returns to this screen position, even if you
+                        move the pointer.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ) : (
               <div className="pattern-setup">
@@ -573,8 +610,8 @@ export default function App() {
                       </EmptyMedia>
                       <EmptyTitle>Build your first pattern</EmptyTitle>
                       <EmptyDescription>
-                        Add points in the order you want to click them. Give
-                        each step its own wait.
+                        Add mouse and keyboard actions in order. Give each step
+                        its own wait.
                       </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
@@ -590,7 +627,7 @@ export default function App() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Step</TableHead>
-                          <TableHead>Position</TableHead>
+                          <TableHead>Action</TableHead>
                           <TableHead>Wait</TableHead>
                           <TableHead>
                             <span className="sr-only">Step actions</span>
@@ -610,8 +647,15 @@ export default function App() {
                             <TableCell>
                               <span className="step-number">{index + 1}</span>
                             </TableCell>
-                            <TableCell className="tabular-nums">
-                              {step.x}, {step.y}
+                            <TableCell>
+                              <div className="pattern-action">
+                                <span>{ACTION_LABELS[step.action]}</span>
+                                <span className="text-xs text-muted-foreground tabular-nums">
+                                  {step.action === "key"
+                                    ? step.key
+                                    : `${step.x}, ${step.y}`}
+                                </span>
+                              </div>
                             </TableCell>
                             <TableCell className="tabular-nums">
                               {step.delay}s
@@ -627,7 +671,7 @@ export default function App() {
                                     <Button
                                       key={String(label)}
                                       variant="ghost"
-                                      size="icon-sm"
+                                      size="icon-xs"
                                       aria-label={`Move step ${index + 1} ${label}`}
                                       disabled={
                                         busy ||
@@ -645,7 +689,7 @@ export default function App() {
                                 })}
                                 <Button
                                   variant="ghost"
-                                  size="icon-sm"
+                                  size="icon-xs"
                                   aria-label={`Edit step ${index + 1}`}
                                   disabled={busy}
                                   onClick={() => newDraft(step)}
@@ -654,7 +698,7 @@ export default function App() {
                                 </Button>
                                 <Button
                                   variant="ghost"
-                                  size="icon-sm"
+                                  size="icon-xs"
                                   aria-label={`Remove step ${index + 1}`}
                                   disabled={busy}
                                   onClick={() =>
@@ -705,7 +749,7 @@ export default function App() {
             </div>
             <FieldGroup>
               <FieldSet disabled={busy}>
-                <FieldLegend>Start clicking</FieldLegend>
+                <FieldLegend>Start actions</FieldLegend>
                 <ToggleGroup
                   type="single"
                   value={form.start_mode}
@@ -774,7 +818,7 @@ export default function App() {
               </FieldSet>
               <Separator />
               <FieldSet disabled={busy}>
-                <FieldLegend>Stop clicking</FieldLegend>
+                <FieldLegend>Stop actions</FieldLegend>
                 <ToggleGroup
                   type="single"
                   value={form.stop_mode}
@@ -809,7 +853,7 @@ export default function App() {
                     <FieldDescription>
                       {pattern
                         ? `One cycle runs all ${steps.length} steps once.`
-                        : "Set to 1 for a single click."}
+                        : "Set to 1 to perform the action once."}
                     </FieldDescription>
                   </Field>
                 ) : (
@@ -863,14 +907,14 @@ export default function App() {
             <div>
               <h2>
                 {desktop?.running
-                  ? `Next click in ${duration(desktop.next_in)}`
+                  ? `Next action in ${duration(desktop.next_in)}`
                   : desktop?.picking
                     ? "Select your point on the desktop"
                     : "Ready when you are"}
               </h2>
               <p role="status" aria-live="polite">
                 {desktop?.running
-                  ? `${desktop.completed}${desktop.limit ? ` of ${desktop.limit}` : ""} clicks completed${desktop.step ? ` · Next: step ${desktop.step}` : ""}`
+                  ? `${desktop.completed}${desktop.limit ? ` of ${desktop.limit}` : ""} actions completed${desktop.step ? ` · Next: step ${desktop.step}` : ""}`
                   : desktop?.status || "Connecting to the desktop app…"}
               </p>
             </div>
@@ -891,7 +935,13 @@ export default function App() {
               onClick={() =>
                 void action("start", {
                   settings: form,
-                  pattern: steps.map(({ x, y, delay }) => ({ x, y, delay })),
+                  pattern: steps.map(({ x, y, delay, action, key }) => ({
+                    x,
+                    y,
+                    delay,
+                    action,
+                    key,
+                  })),
                 })
               }
             >
@@ -903,13 +953,13 @@ export default function App() {
               ) : (
                 <Play data-icon="inline-start" />
               )}
-              Start clicking
+              Start actions
             </Button>
           </div>
           {Boolean(desktop?.running && desktop.limit) && (
             <Progress
               value={progress}
-              aria-label="Clicks completed"
+              aria-label="Actions completed"
               className="run-progress"
             />
           )}
@@ -940,50 +990,64 @@ export default function App() {
               {draft?.editing ? "Edit pattern step" : "Add a pattern step"}
             </DialogTitle>
             <DialogDescription>
-              Pick the target and set how long to wait after this click.
+              Choose an action and how long to wait before the next step.
             </DialogDescription>
           </DialogHeader>
           {draft && (
             <FieldGroup>
-              <FieldGroup className="coordinate-fields">
-                <Field data-invalid={Boolean(draftError)}>
-                  <FieldLabel htmlFor="step-x">X position</FieldLabel>
-                  <Input
-                    id="step-x"
-                    type="number"
-                    step="1"
-                    value={draft.x}
-                    aria-invalid={Boolean(draftError)}
-                    onChange={(e) =>
-                      setDraft((d) => d && { ...d, x: e.target.value })
-                    }
-                  />
-                </Field>
-                <Field data-invalid={Boolean(draftError)}>
-                  <FieldLabel htmlFor="step-y">Y position</FieldLabel>
-                  <Input
-                    id="step-y"
-                    type="number"
-                    step="1"
-                    value={draft.y}
-                    aria-invalid={Boolean(draftError)}
-                    onChange={(e) =>
-                      setDraft((d) => d && { ...d, y: e.target.value })
-                    }
-                  />
-                </Field>
-              </FieldGroup>
-              <Button
-                variant="outline"
+              <ActionFields
+                id="step"
+                action={draft.action}
+                keyboardKey={draft.key}
+                onAction={(value) =>
+                  setDraft((d) => d && { ...d, action: value })
+                }
+                onKey={(value) => setDraft((d) => d && { ...d, key: value })}
                 disabled={busy}
-                onClick={() => void action("pick", { id: draft.id })}
-              >
-                <Crosshair data-icon="inline-start" />
-                Pick a point on screen
-              </Button>
+              />
+              {draft.action !== "key" && (
+                <>
+                  <FieldGroup className="coordinate-fields">
+                    <Field data-invalid={Boolean(draftError)}>
+                      <FieldLabel htmlFor="step-x">X position</FieldLabel>
+                      <Input
+                        id="step-x"
+                        type="number"
+                        step="1"
+                        value={draft.x}
+                        aria-invalid={Boolean(draftError)}
+                        onChange={(e) =>
+                          setDraft((d) => d && { ...d, x: e.target.value })
+                        }
+                      />
+                    </Field>
+                    <Field data-invalid={Boolean(draftError)}>
+                      <FieldLabel htmlFor="step-y">Y position</FieldLabel>
+                      <Input
+                        id="step-y"
+                        type="number"
+                        step="1"
+                        value={draft.y}
+                        aria-invalid={Boolean(draftError)}
+                        onChange={(e) =>
+                          setDraft((d) => d && { ...d, y: e.target.value })
+                        }
+                      />
+                    </Field>
+                  </FieldGroup>
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => void action("pick", { id: draft.id })}
+                  >
+                    <Crosshair data-icon="inline-start" />
+                    Pick a point on screen
+                  </Button>
+                </>
+              )}
               <Field data-invalid={Boolean(draftError)}>
                 <FieldLabel htmlFor="step-delay">
-                  Wait after click, in seconds
+                  Wait after action, in seconds
                 </FieldLabel>
                 <Input
                   id="step-delay"

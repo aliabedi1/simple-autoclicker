@@ -563,3 +563,12 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+.pattern-action {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 120px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

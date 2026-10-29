@@ -2,7 +2,7 @@
 
 <img src="assets/icon.png" alt="Simple Autoclicker: a mouse pointer with a golden clock on a blue tile" width="96" height="96">
 
-A simple desktop interface for scheduling single clicks, repeated clicks, or multi-point click patterns on **Windows or Linux (X11)**. Uses a local shadcn/ui interface connected to Python 3.10+, Tkinter, and pynput. The interface opens in your browser and follows the system light/dark theme. No cloud service or Node.js installation is needed to run the bundled app.
+A simple desktop interface for scheduling mouse clicks, keyboard keys, shortcuts, and mixed action patterns on **Windows or Linux (X11)**. Uses a local shadcn/ui interface connected to Python 3.10+, Tkinter, and pynput. The interface opens in your browser and follows the system light/dark theme. No cloud service or Node.js installation is needed to run the bundled app.
 
 ## Windows
 
@@ -38,10 +38,10 @@ Run from your desktop, with your session unlocked. Disable automatic sleep while
 ## Use
 
 1. Open **Start Clicker.cmd** on Windows or run **sh start-clicker.sh** on Linux. The launcher starts the local desktop process and opens the interface in your default browser.
-2. Choose **Single point**. Enter X/Y or choose **Pick a point on screen**, then click the target in the crosshair overlay. Esc cancels the overlay.
-3. Choose the wait between clicks and its unit. Minimum wait: 50 milliseconds.
-4. Under **Schedule**, choose a start delay or a start date/time, and a click count or end date/time.
-5. Choose **Start clicking**. Progress and the next click appear beside the run controls.
+2. Choose **Single action**, then select **Left click**, **Right click**, **Middle click**, or **Keyboard key**. For mouse actions, enter X/Y or use **Pick a point on screen**. For keyboard actions, enter the key or shortcut.
+3. Choose the wait between actions and its unit. Minimum wait: 50 milliseconds.
+4. Under **Schedule**, choose a start delay or a start date/time, and an action count or end date/time.
+5. Choose **Start actions**. Progress and the next click appear beside the run controls.
 6. Choose **Stop**, or press **Esc while the browser tab is focused**, to cancel.
 7. Choose **Quit app** to stop clicking and close the desktop process. You can then close the browser tab. Closing a browser tab by itself does **not** stop the desktop process or its scheduled run.
 
@@ -52,16 +52,22 @@ The header theme button cycles between system, light, and dark. System is the de
 Choose **Click pattern** to build a sequence in the same screen:
 
 1. Choose **Add first step** or **Add step**.
-2. Enter X/Y or choose **Pick a point on screen** in the step dialog.
-3. Set **Wait after click, in seconds**, then choose **Add step**.
+2. Select the step action. For a mouse click, enter X/Y or choose **Pick a point on screen**. For a keyboard step, enter its key or shortcut.
+3. Set **Wait after action, in seconds**, then choose **Add step**.
 4. Use each row's edit, move up/down, and remove buttons to arrange the sequence.
-5. Set the number of **cycles** or an end date, then choose **Start clicking**.
+5. Set the number of **cycles** or an end date, then choose **Start actions**.
 
-Each step performs one left click. Its delay is the wait before the next step; the last step's delay separates cycles. A cycle runs the full list once: **3 steps x 2 cycles = 6 clicks**. An end date can stop the sequence partway through a cycle.
+Each step performs one mouse click or one key/shortcut press and release. Its delay is the wait before the next step; the last step's delay separates cycles. A cycle runs the full list once: **3 steps x 2 cycles = 6 actions**. An end date can stop the sequence partway through a cycle.
 
-**Save** downloads a version 1 JSON pattern file. **Load** opens one. Existing pattern files from the native interface are compatible. Coordinates are absolute screen positions, so check loaded patterns after changing monitors or display scaling. The interface supports up to 1000 steps per pattern.
+**Save** downloads a version 2 JSON pattern file containing each step’s action and key. **Load** accepts version 1 and version 2 files. Older version 1 steps default to left click. Coordinates are absolute screen positions, so check loaded patterns after changing monitors or display scaling. The interface supports up to 1000 steps per pattern.
 
-Dates use **YYYY-MM-DD**, and times use **HH:MM:SS** in your computer's local 24-hour clock. An explicit start date must be in the future; an end date must be later than the start. No clicks start once the end time is reached, even if the next click would otherwise be due.
+### Keyboard keys and shortcuts
+
+Choose **Keyboard key** and enter a single character, `enter`, `space`, `tab`, `esc`, `backspace`, `delete`, `insert`, `home`, `end`, `page_up`, `page_down`, `up`, `down`, `left`, `right`, `caps_lock`, or `f1` through `f24`. Shortcuts join modifiers with `+`, for example `ctrl+a`, `ctrl+shift+s`, or `alt+tab`. Supported modifiers are `ctrl`, `alt`, `shift`, and `cmd` (Windows/Super); `win`, `windows`, `super`, `control`, and `escape` aliases are accepted. Use `plus` for the literal plus key, such as `ctrl+plus`. Names are case-insensitive; use `shift+a` for an uppercase letter.
+
+Keyboard actions send a press and release to the **currently focused application**. They do not move the pointer or automatically focus a window. Use the start delay to switch to the intended application, or put a mouse-click step before the keyboard step to focus the target. For example: left-click a text field, wait 0.2 seconds, then press `ctrl+a`. Count limits count whole actions; a shortcut counts as one action. Pressed keys are released even if a shortcut fails.
+
+Dates use **YYYY-MM-DD**, and times use **HH:MM:SS** in your computer's local 24-hour clock. An explicit start date must be in the future; an end date must be later than the start. No actions start once the end time is reached, even if the next click would otherwise be due.
 
 For example: pick a point, set the interval to **2 seconds**, start **after 5 seconds**, and stop **after 10 clicks**. Or schedule a start for tomorrow at **09:00:00**, click every **1 minute**, and stop tomorrow at **10:00:00**.
 

@@ -45,6 +45,21 @@ class BridgeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'outside'):
             self.bridge.execute('start', {'settings': {'x': '-99999'}})
 
+    def test_keyboard_settings_and_pattern_round_trip(self):
+        state = self.bridge.execute('start', {'settings': {'action': 'key', 'key': 'ctrl+s', 'x': 'unused'}})
+        self.assertTrue(state['running'])
+        self.assertEqual(state['settings']['action'], 'key')
+        self.bridge.execute('stop', {})
+        state = self.bridge.execute('start', {'settings': {'target_mode': 'pattern'},
+                                            'pattern': [{'x': 10, 'y': 20, 'delay': .05, 'action': 'right'},
+                                                        {'x': 0, 'y': 0, 'delay': .05, 'action': 'key', 'key': 'enter'}]})
+        self.assertEqual(state['pattern'][0]['action'], 'right')
+        self.assertEqual(state['pattern'][1]['key'], 'enter')
+        self.bridge.execute('stop', {})
+        with self.assertRaises(ValueError):
+            self.bridge.execute('start', {'settings': {'target_mode': 'single', 'action': 'key', 'key': 'not_a_key'}})
+        self.assertIsNone(self.app.run)
+
 
 class HTTPTests(unittest.TestCase):
     def setUp(self):

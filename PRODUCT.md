@@ -8,11 +8,11 @@ web
 
 ## Product Purpose
 
-Simple Autoclicker is a local desktop utility for scheduling single clicks, repeated clicks, and ordered patterns of screen points. The web interface controls the Python desktop process on the same computer.
+Simple Autoclicker is a local desktop utility for scheduling left/right/middle mouse clicks, keyboard keys and shortcuts, and ordered patterns mixing those actions. The web interface controls the Python desktop process on the same computer.
 
 ## Capabilities and Constraints
 
-Preserve Windows and Linux X11 support, exact point selection, per-step waits, pattern editing and JSON files, start delays and dates, stopping by count or end date, progress, cancellation, and sleep prevention on Windows. Linux users disable sleep manually. No Wayland support. The desktop process must run on the computer being clicked. No cloud service or remote control is required.
+Preserve Windows and Linux X11 support, exact point selection, per-step actions and waits, keyboard shortcuts sent to the focused application, pattern editing and JSON files, start delays and dates, stopping by count or end date, progress, cancellation, and sleep prevention on Windows. Linux users disable sleep manually. No Wayland support. The desktop process must run on the computer being clicked. No cloud service or remote control is required.
 
 ## Brand Commitments
 

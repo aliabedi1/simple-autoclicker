@@ -113,6 +113,7 @@ class ScheduleTests(unittest.TestCase):
 class FakeMouse:
     def __init__(self):
         self.clicks = []
+        self.actions = []
         self.awake = False
         self.fail = False
 
@@ -123,6 +124,13 @@ class FakeMouse:
         if self.fail:
             raise RuntimeError('Mouse unavailable')
         self.clicks.append(point)
+
+    def perform(self, point, action='left', key=''):
+        if self.fail:
+            raise RuntimeError('Mouse unavailable')
+        self.actions.append((point, action, key))
+        if action != 'key':
+            self.click(point)
 
     def keep_awake(self, enabled):
         self.awake = enabled
@@ -180,7 +188,7 @@ class UITests(unittest.TestCase):
         self.app.cancel()
         self.app.tick()
         self.assertEqual(len(self.mouse.clicks), 1)
-        self.assertIn('1 click', self.app.status.get())
+        self.assertIn('1 action', self.app.status.get())
 
     def test_click_failure_disarms_and_restores_power(self):
         self.schedule(3)
@@ -366,6 +374,33 @@ class UITests(unittest.TestCase):
         self.assertEqual(self.mouse.clicks, [(10, 20), (30, 40), (10, 20), (30, 40)])
         self.assertIsNone(self.app.run)
         self.assertIsNone(self.app.job)
+        self.assertFalse(self.mouse.awake)
+
+    def test_keyboard_action_ignores_screen_coordinates(self):
+        self.app.action.set('key')
+        self.app.key.set('enter')
+        self.app.x.set('unused')
+        self.app.y.set('unused')
+        self.schedule()
+        self.run_due_tick()
+        self.assertEqual(self.mouse.clicks, [])
+        self.assertEqual(self.mouse.actions, [((0, 0), 'key', 'enter')])
+        self.assertFalse(self.mouse.awake)
+
+    def test_mixed_pattern_actions_with_real_timer(self):
+        steps = (ClickStep(10, 20, .05, 'right'), ClickStep(0, 0, .05, 'key', 'ctrl+a'),
+                 ClickStep(30, 40, .05, 'middle'))
+        self.app.pattern = steps
+        self.app.target_mode.set('pattern')
+        self.app.delay.set('0')
+        self.app.count.set('2')
+        self.app.schedule()
+        deadline = time.monotonic() + 3
+        while self.app.run is not None and time.monotonic() < deadline:
+            self.root.update()
+            time.sleep(.005)
+        self.assertEqual([(a, k) for _, a, k in self.mouse.actions], [('right', ''), ('key', 'ctrl+a'), ('middle', '')] * 2)
+        self.assertIsNone(self.app.run)
         self.assertFalse(self.mouse.awake)
 
 
