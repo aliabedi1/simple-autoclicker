@@ -2,7 +2,7 @@
 
 <img src="assets/icon.png" alt="Simple Autoclicker: a mouse pointer with a golden clock on a blue tile" width="96" height="96">
 
-A simple desktop interface for scheduling one left mouse click on **Windows or Linux (X11)**. Uses Python 3.10+, Tkinter, and pynput.
+A simple desktop interface for scheduling single or repeated left mouse clicks on **Windows or Linux (X11)**. Uses Python 3.10+, Tkinter, and pynput.
 
 ## Windows
 
@@ -37,14 +37,20 @@ Run from your desktop, with your session unlocked. Disable automatic sleep while
 
 ## Use
 
-1. Enter the click time as **HH:MM:SS** using the local 24-hour clock.
-2. Enter screen coordinates, or choose **Pick position in 3 seconds** and move your pointer to the target.
-3. Choose **Schedule click**. The countdown shows the scheduled date and time.
-4. **Cancel**, **Esc**, or closing the window cancels the pending click or position capture.
+1. Choose **Pick point**, then click the exact target on your screen. The crosshair overlay captures your selection without clicking the underlying application. You can also enter X and Y manually. Press **Esc** to cancel selection.
+2. Set the **delay between clicks** in seconds, minutes, or milliseconds (minimum 50 milliseconds). Each repetition is one left click.
+3. Choose when to **Start**: after a delay (default 3 seconds), or on a specific date and time.
+4. Choose when to **Stop**: after a total click count, or on a specific end date and time. A count of **1** keeps the original single-click behavior.
+5. Select **Start clicking**. The status shows clicks completed and time until the next click.
+6. Select **Stop / Cancel**, press **Esc while the app is focused**, or close the window to stop.
 
-Times that have already passed run tomorrow. Keep the window open and the target visible. Windows sleep prevention is enabled only while a click is scheduled, then restored on cancellation, completion, or exit. The app clicks once and does not repeat daily. Timing depends on OS scheduling and is not guaranteed to be exact.
+Dates use **YYYY-MM-DD**, and times use **HH:MM:SS** in your computer's local 24-hour clock. An explicit start date must be in the future; an end date must be later than the start. No clicks start once the end time is reached, even if the next click would otherwise be due.
 
-The original Windows-only PowerShell versions remain available as `clicker.ps1` (console) and `clicker-ui.ps1` (native UI). The Windows and Linux launchers both use the shared Python interface.
+For example: pick a point, set the interval to **2 seconds**, start **after 5 seconds**, and stop **after 10 clicks**. Or schedule a start for tomorrow at **09:00:00**, click every **1 minute**, and stop tomorrow at **10:00:00**.
+
+Keep the app open, the target visible, and your session unlocked. Windows sleep prevention is enabled while a run is scheduled, then restored on cancellation, completion, or exit. On Linux, disable automatic sleep manually. The delay is measured after each completed click; a late timer or resume from sleep does not trigger a burst of missed clicks. Timing depends on OS scheduling and is not guaranteed to be exact.
+
+The original Windows-only PowerShell versions remain available as `clicker.ps1` (console) and `clicker-ui.ps1` (native UI). These legacy versions perform a single click. Use the Windows or Linux launcher for the shared Python interface and repetition features.
 
 ## Tests
 
