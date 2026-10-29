@@ -3,14 +3,15 @@
 import ctypes
 from datetime import datetime, timedelta
 import math
+import json
 import os
 from pathlib import Path
 import sys
 import time
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
-from schedule import ClickPlan, ClickRun, read_datetime, read_seconds
+from schedule import ClickPlan, ClickRun, ClickStep, read_datetime, read_seconds
 
 
 class Mouse:
@@ -58,6 +59,9 @@ class ClickerApp:
         self.point = None
         self.job = None
         self.overlay = None
+        self.pattern = ()
+        self.pattern_editor = None
+        self.pick_callback = None
         self.editors = []
         root.title('Simple Autoclicker')
         assets = Path(__file__).resolve().parent / 'assets'
@@ -93,18 +97,29 @@ class ClickerApp:
             row=1, column=0, columnspan=2, sticky='w', pady=(6, 12))
 
         target = self.section(frame, 'Click point', 2)
+        self.target_mode = tk.StringVar(value='single')
+        modes = ttk.Frame(target)
+        modes.grid(row=0, column=0, columnspan=5, sticky='ew', pady=(0, 6))
+        self.radio(modes, 'Single point', self.target_mode, 'single', 0)
+        pattern_radio = ttk.Radiobutton(modes, text='Pattern', variable=self.target_mode, value='pattern')
+        pattern_radio.grid(row=0, column=1, padx=(0, 12))
+        self.editors.append(pattern_radio)
+        self.pattern_button = ttk.Button(modes, text='Edit pattern...', command=self.edit_pattern)
+        self.pattern_button.grid(row=0, column=2)
+        self.editors.append(self.pattern_button)
         x, y = mouse.position()
         self.x, self.y = tk.StringVar(value=str(x)), tk.StringVar(value=str(y))
-        ttk.Label(target, text='X').grid(row=0, column=0, padx=(0, 5))
-        self.x_entry = self.entry(target, self.x, 0, 1, 10)
-        ttk.Label(target, text='Y').grid(row=0, column=2, padx=(12, 5))
-        self.y_entry = self.entry(target, self.y, 0, 3, 10)
+        ttk.Label(target, text='X').grid(row=1, column=0, padx=(0, 5))
+        self.x_entry = self.entry(target, self.x, 1, 1, 10)
+        ttk.Label(target, text='Y').grid(row=1, column=2, padx=(12, 5))
+        self.y_entry = self.entry(target, self.y, 1, 3, 10)
         self.pick_button = ttk.Button(target, text='Pick point', command=self.pick)
-        self.pick_button.grid(row=0, column=4, padx=(12, 0), sticky='ew')
+        self.pick_button.grid(row=1, column=4, padx=(12, 0), sticky='ew')
         self.editors.append(self.pick_button)
         target.columnconfigure(4, weight=1)
-        ttk.Label(target, text='Pick point, then click the spot on your screen. Esc cancels.').grid(
-            row=1, column=0, columnspan=5, sticky='w', pady=(8, 0))
+        self.target_hint = tk.StringVar(value='Pick point, then click the spot on your screen. Esc cancels.')
+        ttk.Label(target, textvariable=self.target_hint).grid(
+            row=2, column=0, columnspan=5, sticky='w', pady=(8, 0))
 
         pace = self.section(frame, 'Repeat', 3)
         ttk.Label(pace, text='Delay between clicks').grid(row=0, column=0, sticky='w', padx=(0, 12))
@@ -135,7 +150,10 @@ class ClickerApp:
         end = now + timedelta(hours=1)
         self.end_date = tk.StringVar(value=end.strftime('%Y-%m-%d'))
         self.end_clock = tk.StringVar(value=end.strftime('%H:%M:%S'))
-        self.radio(stop, 'After this many clicks', self.stop_mode, 'count', 0)
+        self.count_label = tk.StringVar(value='After this many clicks')
+        count_radio = ttk.Radiobutton(stop, textvariable=self.count_label, variable=self.stop_mode, value='count')
+        count_radio.grid(row=0, column=0, sticky='w', padx=(0, 12), pady=2)
+        self.editors.append(count_radio)
         self.count_entry = self.entry(stop, self.count, 0, 1, 10)
         self.radio(stop, 'On date / time', self.stop_mode, 'date', 1)
         self.end_date_entry = self.entry(stop, self.end_date, 1, 1, 13)
@@ -157,12 +175,13 @@ class ClickerApp:
             row=8, column=0, columnspan=2, sticky='w', pady=(8, 0))
         self.start_mode.trace_add('write', lambda *args: self.set_busy(False))
         self.stop_mode.trace_add('write', lambda *args: self.set_busy(False))
+        self.target_mode.trace_add('write', lambda *args: self.set_busy(False))
         self.set_busy(False)
         root.update_idletasks()
         root.minsize(root.winfo_reqwidth(), root.winfo_reqheight())
 
     def section(self, parent, title, row):
-        section = ttk.LabelFrame(parent, text=title, padding=8)
+        section = ttk.LabelFrame(parent, text=title, padding=(8, 5))
         section.grid(row=row, column=0, columnspan=2, sticky='ew', pady=(0, 6))
         return section
 
@@ -182,6 +201,14 @@ class ClickerApp:
             widget.configure(state='disabled' if busy else 'normal')
         if not busy:
             self.unit_box.configure(state='readonly')
+            pattern_mode = self.target_mode.get() == 'pattern'
+            for widget in (self.x_entry, self.y_entry, self.pick_button, self.interval_entry, self.unit_box):
+                widget.configure(state='disabled' if pattern_mode else 'normal')
+            if not pattern_mode:
+                self.unit_box.configure(state='readonly')
+            self.count_label.set('After this many cycles' if pattern_mode else 'After this many clicks')
+            self.target_hint.set(f'{len(self.pattern)} steps. Edit pattern to add or reorder points.' if pattern_mode else
+                                 'Pick point, then click the spot on your screen. Esc cancels.')
             self.delay_entry.configure(state='normal' if self.start_mode.get() == 'delay' else 'disabled')
             for widget in (self.date_entry, self.time_entry):
                 widget.configure(state='normal' if self.start_mode.get() == 'date' else 'disabled')
@@ -198,6 +225,14 @@ class ClickerApp:
         return (self.root.winfo_vrootx(), self.root.winfo_vrooty(),
                 self.root.winfo_vrootwidth(), self.root.winfo_vrootheight())
 
+    def edit_pattern(self):
+        if self.run is not None or self.overlay is not None:
+            return
+        if self.pattern_editor is not None:
+            self.pattern_editor.window.lift()
+            return
+        self.pattern_editor = PatternEditor(self)
+
     def valid_point(self, x, y):
         if not (-100000 <= x <= 100000 and -100000 <= y <= 100000):
             return False
@@ -209,7 +244,11 @@ class ClickerApp:
 
     def build_plan(self, now):
         units = {'seconds': 1, 'minutes': 60, 'milliseconds': 0.001}
-        interval = read_seconds(self.interval.get(), 'Delay between clicks', units[self.unit.get()], 0.05)
+        pattern = self.pattern if self.target_mode.get() == 'pattern' else ()
+        if self.target_mode.get() == 'pattern' and not pattern:
+            raise ValueError('Add at least one step with Edit pattern first.')
+        interval = pattern[0].delay if pattern else read_seconds(
+            self.interval.get(), 'Delay between clicks', units[self.unit.get()], 0.05)
         if self.start_mode.get() == 'delay':
             start = now + timedelta(seconds=read_seconds(self.delay.get(), 'Start delay'))
         else:
@@ -222,21 +261,29 @@ class ClickerApp:
                 limit = int(self.count.get())
             except ValueError:
                 raise ValueError('Click count must be a whole number of at least 1.') from None
+            if pattern:
+                limit *= len(pattern)
         else:
             end = read_datetime(self.end_date.get(), self.end_clock.get(), 'End')
-        return ClickPlan(start, interval, limit, end)
+        return ClickPlan(start, interval, limit, end, pattern)
 
     def schedule(self):
         if self.run is not None or self.overlay is not None:
             return
         try:
             plan = self.build_plan(datetime.now())
-            try:
-                point = (int(self.x.get()), int(self.y.get()))
-            except ValueError:
-                raise ValueError('Enter whole numbers for X and Y, or use Pick point.') from None
-            if not self.valid_point(*point):
-                raise ValueError('That position is outside your screens. Pick a point again.')
+            if plan.pattern:
+                point = plan.pattern[0].point
+                for index, step in enumerate(plan.pattern, 1):
+                    if not self.valid_point(*step.point):
+                        raise ValueError(f'Pattern step {index} is outside your screens. Edit that point.')
+            else:
+                try:
+                    point = (int(self.x.get()), int(self.y.get()))
+                except ValueError:
+                    raise ValueError('Enter whole numbers for X and Y, or use Pick point.') from None
+                if not self.valid_point(*point):
+                    raise ValueError('That position is outside your screens. Pick a point again.')
             self.mouse.keep_awake(True)
         except (ValueError, RuntimeError, OSError) as error:
             self.status.set(str(error))
@@ -245,10 +292,11 @@ class ClickerApp:
         self.set_busy(True)
         self.tick()
 
-    def pick(self):
+    def pick(self, callback=None):
         if self.run is not None or self.overlay is not None:
             return
         try:
+            self.pick_callback = callback
             self.set_busy(True)
             self.status.set('Click the target on your screen. Esc cancels point selection.')
             left, top, width, height = self.screen_bounds()
@@ -280,8 +328,11 @@ class ClickerApp:
             return
         if not self.valid_point(event.x_root, event.y_root):
             return
-        self.x.set(str(event.x_root))
-        self.y.set(str(event.y_root))
+        if self.pick_callback is not None:
+            self.pick_callback(event.x_root, event.y_root)
+        else:
+            self.x.set(str(event.x_root))
+            self.y.set(str(event.y_root))
         self.finish(f'Point selected: X={event.x_root}, Y={event.y_root}.')
         return 'break'
 
@@ -293,6 +344,7 @@ class ClickerApp:
             run = self.run
             now, monotonic = datetime.now(), time.monotonic()
             if run.ready(now, monotonic):
+                self.point = run.current_step.point if run.current_step is not None else self.point
                 self.mouse.click(self.point)
                 run.record_click(time.monotonic())
             if not run.active:
@@ -307,6 +359,10 @@ class ClickerApp:
                       f'Clicking at X={self.point[0]}, Y={self.point[1]}')
             self.status.set(f'{run.completed}{total} clicks completed\n'
                             f'Next click in {hours:02}:{minutes:02}:{seconds:02}\n{timing}')
+            if run.plan.pattern:
+                size = len(run.plan.pattern)
+                self.status.set(f'{run.completed}{total} clicks | {run.completed // size} cycles completed\n'
+                                f'Next: step {run.completed % size + 1} / {size} in {hours:02}:{minutes:02}:{seconds:02}\n{timing}')
         except Exception as error:
             self.finish(f'Stopped after {self.run.completed} click(s): {error}')
             return
@@ -321,20 +377,200 @@ class ClickerApp:
             self.overlay.destroy()
             self.overlay = None
         self.run = None
+        self.pick_callback = None
         self.set_busy(False)
         try:
             self.mouse.keep_awake(False)
         except (RuntimeError, OSError) as error:
             message += f'\n{error}'
         self.status.set(message)
+        if self.pattern_editor is not None:
+            self.pattern_editor.window.grab_set()
+            self.pattern_editor.window.focus_force()
 
     def cancel(self):
         count = self.run.completed if self.run is not None else 0
         self.finish(f'Cancelled. {count} click(s) completed.')
 
     def close(self):
+        if self.pattern_editor is not None:
+            self.pattern_editor.close()
         self.cancel()
         self.root.destroy()
+
+
+class PatternEditor:
+    def __init__(self, app):
+        self.app = app
+        self.steps = list(app.pattern)
+        self.window = tk.Toplevel(app.root)
+        self.window.title('Click pattern')
+        self.window.transient(app.root)
+        self.window.protocol('WM_DELETE_WINDOW', self.close)
+        self.window.bind('<Escape>', lambda event: self.close())
+        frame = ttk.Frame(self.window, padding=14)
+        frame.grid(sticky='nsew')
+        self.window.columnconfigure(0, weight=1)
+        self.window.rowconfigure(0, weight=1)
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(1, weight=1)
+        ttk.Label(frame, text='Build your click sequence', style='Title.TLabel').grid(row=0, sticky='w', pady=(0, 10))
+        self.tree = ttk.Treeview(frame, columns=('step', 'x', 'y', 'delay'), show='headings', height=6,
+                                 selectmode='browse')
+        for name, title, width in (('step', 'Step', 55), ('x', 'X', 95), ('y', 'Y', 95),
+                                   ('delay', 'Wait after click (s)', 160)):
+            self.tree.heading(name, text=title)
+            self.tree.column(name, width=width, minwidth=45, anchor='center')
+        self.tree.grid(row=1, sticky='nsew')
+        scrollbar = ttk.Scrollbar(frame, orient='vertical', command=self.tree.yview)
+        scrollbar.grid(row=1, column=1, sticky='ns')
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        self.tree.bind('<<TreeviewSelect>>', self.selected)
+        tools = ttk.Frame(frame)
+        tools.grid(row=2, sticky='ew', pady=(6, 10))
+        for column, (label, command) in enumerate((('Move up', lambda: self.move(-1)),
+                                                  ('Move down', lambda: self.move(1)), ('Remove', self.remove))):
+            ttk.Button(tools, text=label, command=command).grid(row=0, column=column, padx=(0, 6))
+        fields = ttk.Frame(frame)
+        fields.grid(row=3, sticky='ew')
+        self.x = tk.StringVar(value=app.x.get())
+        self.y = tk.StringVar(value=app.y.get())
+        self.delay = tk.StringVar(value='1')
+        for column, (label, variable) in enumerate((('X', self.x), ('Y', self.y), ('Wait after (seconds)', self.delay))):
+            ttk.Label(fields, text=label).grid(row=0, column=column, sticky='w')
+            ttk.Entry(fields, textvariable=variable, width=16).grid(row=1, column=column, padx=(0, 8), sticky='ew')
+            fields.columnconfigure(column, weight=1)
+        actions = ttk.Frame(frame)
+        actions.grid(row=4, sticky='ew', pady=10)
+        for column, (label, command) in enumerate((('Pick point', self.pick), ('Add step', self.add),
+                                                  ('Update selected', self.update))):
+            ttk.Button(actions, text=label, command=command).grid(row=0, column=column, padx=(0, 6))
+        self.status = tk.StringVar(value='Each cycle runs top to bottom. The last delay separates cycles.')
+        ttk.Label(frame, textvariable=self.status, wraplength=470).grid(row=5, sticky='ew', pady=(0, 10))
+        footer = ttk.Frame(frame)
+        footer.grid(row=6, sticky='ew')
+        for column, (label, command) in enumerate((('Load...', self.load), ('Save...', self.save),
+                                                  ('Use pattern', self.apply), ('Cancel', self.close))):
+            ttk.Button(footer, text=label, command=command).grid(row=0, column=column, padx=(0, 6))
+        self.refresh()
+        self.window.update_idletasks()
+        self.window.minsize(self.window.winfo_reqwidth(), self.window.winfo_reqheight())
+        self.window.grab_set()
+
+    def refresh(self, selection=None):
+        self.tree.delete(*self.tree.get_children())
+        for index, step in enumerate(self.steps):
+            self.tree.insert('', 'end', iid=str(index), values=(index + 1, step.x, step.y, f'{step.delay:g}'))
+        if selection is not None and 0 <= selection < len(self.steps):
+            self.tree.selection_set(str(selection))
+            self.tree.see(str(selection))
+
+    def index(self):
+        selection = self.tree.selection()
+        if not selection:
+            self.status.set('Select a step in the list first.')
+            return None
+        return int(selection[0])
+
+    def selected(self, event=None):
+        selection = self.tree.selection()
+        if selection:
+            step = self.steps[int(selection[0])]
+            self.x.set(str(step.x))
+            self.y.set(str(step.y))
+            self.delay.set(f'{step.delay:g}')
+
+    def read_step(self):
+        try:
+            x, y = int(self.x.get()), int(self.y.get())
+        except ValueError:
+            raise ValueError('Enter whole numbers for X and Y.') from None
+        if not self.app.valid_point(x, y):
+            raise ValueError('That point is outside your screens. Pick it again.')
+        return ClickStep(x, y, read_seconds(self.delay.get(), 'Step delay', minimum=0.05))
+
+    def add(self):
+        try:
+            step = self.read_step()
+        except ValueError as error:
+            self.status.set(str(error))
+            return
+        self.steps.append(step)
+        self.refresh(len(self.steps) - 1)
+        self.status.set(f'Added step {len(self.steps)}. Pick another point to add the next step.')
+
+    def update(self):
+        index = self.index()
+        if index is None:
+            return
+        try:
+            self.steps[index] = self.read_step()
+        except ValueError as error:
+            self.status.set(str(error))
+            return
+        self.refresh(index)
+        self.status.set(f'Updated step {index + 1}.')
+
+    def move(self, offset):
+        index = self.index()
+        if index is not None and 0 <= index + offset < len(self.steps):
+            self.steps[index], self.steps[index + offset] = self.steps[index + offset], self.steps[index]
+            self.refresh(index + offset)
+
+    def remove(self):
+        index = self.index()
+        if index is not None:
+            del self.steps[index]
+            self.refresh(min(index, len(self.steps) - 1))
+
+    def pick(self):
+        self.app.pick(lambda x, y: (self.x.set(str(x)), self.y.set(str(y))))
+
+    def apply(self):
+        if not self.steps:
+            self.status.set('Add at least one step before using this pattern.')
+            return
+        self.app.pattern = tuple(self.steps)
+        self.app.target_mode.set('pattern')
+        self.app.status.set(f'Pattern ready: {len(self.steps)} steps. Set the cycle count, then start.')
+        self.close()
+
+    def save(self):
+        if not self.steps:
+            self.status.set('Add at least one step before saving.')
+            return
+        path = filedialog.asksaveasfilename(parent=self.window, defaultextension='.json',
+                                           filetypes=[('Click patterns', '*.json')])
+        if path:
+            try:
+                data = {'version': 1, 'steps': [dict(x=s.x, y=s.y, delay=s.delay) for s in self.steps]}
+                Path(path).write_text(json.dumps(data, indent=2), encoding='utf-8')
+                self.status.set('Pattern saved.')
+            except OSError as error:
+                self.status.set(f'Could not save: {error}')
+
+    def load(self):
+        path = filedialog.askopenfilename(parent=self.window, filetypes=[('Click patterns', '*.json')])
+        if path:
+            try:
+                data = json.loads(Path(path).read_text(encoding='utf-8'))
+                if not isinstance(data, dict) or data.get('version') != 1 or not isinstance(data.get('steps'), list):
+                    raise ValueError('Choose a version 1 click pattern JSON file.')
+                steps = [ClickStep(**step) for step in data['steps']]
+                if not steps:
+                    raise ValueError('The pattern contains no steps.')
+                self.steps = steps
+                self.refresh(0)
+                self.status.set('Pattern loaded. Check the points before choosing Use pattern.')
+            except (OSError, ValueError, TypeError, OverflowError) as error:
+                self.status.set(f'Could not load: {error}')
+
+    def close(self):
+        if self.app.overlay is not None:
+            self.app.cancel()
+        self.window.grab_release()
+        self.window.destroy()
+        self.app.pattern_editor = None
 
 
 def main():

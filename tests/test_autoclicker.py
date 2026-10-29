@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 import os
+from pathlib import Path
+import tempfile
 import time
 import tkinter as tk
 from types import SimpleNamespace
@@ -7,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from autoclicker import ClickerApp, Mouse
-from schedule import ClickPlan, ClickRun, read_datetime, read_seconds
+from schedule import ClickPlan, ClickRun, ClickStep, read_datetime, read_seconds
 
 
 class ScheduleTests(unittest.TestCase):
@@ -82,6 +84,30 @@ class ScheduleTests(unittest.TestCase):
             with patch.dict(os.environ, {}, clear=True):
                 with self.assertRaisesRegex(RuntimeError, 'display'):
                     Mouse()
+
+    def test_pattern_order_delays_and_wrap(self):
+        steps = (ClickStep(10, 20, .5), ClickStep(30, 40, 2))
+        run = ClickRun(ClickPlan(self.now, 1, limit=4, pattern=steps))
+        self.assertEqual(run.current_step.point, (10, 20))
+        run.record_click(100)
+        self.assertEqual(run.current_step.point, (30, 40))
+        self.assertFalse(run.ready(self.now, 100.49))
+        self.assertTrue(run.ready(self.now, 100.5))
+        run.record_click(100.5)
+        self.assertEqual(run.current_step.point, (10, 20))
+        self.assertFalse(run.ready(self.now, 102.49))
+        self.assertTrue(run.ready(self.now, 102.5))
+        run.record_click(102.5)
+        run.record_click(103)
+        self.assertEqual(run.completed, 4)
+        self.assertFalse(run.active)
+
+    def test_end_time_stops_mid_pattern(self):
+        run = ClickRun(ClickPlan(self.now, 1, None, self.now + timedelta(seconds=1),
+                                (ClickStep(10, 20), ClickStep(30, 40))))
+        run.record_click(0)
+        self.assertFalse(run.ready(self.now + timedelta(seconds=1), 1))
+        self.assertEqual(run.completed, 1)
 
 
 class FakeMouse:
@@ -245,6 +271,102 @@ class UITests(unittest.TestCase):
         self.assertFalse(self.mouse.awake)
         self.assertIsNone(self.app.job)
         self.assertIsNone(self.app.run)
+
+    def test_pattern_cycle_count_and_all_points_validated(self):
+        self.app.pattern = (ClickStep(10, 20, .5), ClickStep(30, 40, 2))
+        self.app.target_mode.set('pattern')
+        self.app.count.set('3')
+        self.app.interval.set('unused')
+        self.app.x.set('unused')
+        plan = self.app.build_plan(datetime.now())
+        self.assertEqual(plan.limit, 6)
+        self.app.schedule()
+        self.assertIsNotNone(self.app.run)
+        self.app.cancel()
+        self.app.pattern = (ClickStep(10, 20), ClickStep(-99999, 0))
+        self.app.schedule()
+        self.assertIsNone(self.app.run)
+        self.assertIn('step 2', self.app.status.get())
+
+    def test_empty_pattern_rejected(self):
+        self.app.target_mode.set('pattern')
+        self.app.schedule()
+        self.assertIsNone(self.app.run)
+        self.assertIn('at least one', self.app.status.get())
+
+    def test_editor_add_update_reorder_remove_and_apply(self):
+        self.app.edit_pattern()
+        editor = self.app.pattern_editor
+        editor.x.set('10')
+        editor.y.set('20')
+        editor.delay.set('.5')
+        editor.add()
+        editor.x.set('30')
+        editor.y.set('40')
+        editor.delay.set('2')
+        editor.add()
+        editor.move(-1)
+        self.assertEqual([s.point for s in editor.steps], [(30, 40), (10, 20)])
+        editor.x.set('50')
+        editor.update()
+        self.assertEqual(editor.steps[0].point, (50, 40))
+        editor.remove()
+        self.assertEqual(len(editor.steps), 1)
+        editor.apply()
+        self.assertIsNone(self.app.pattern_editor)
+        self.assertEqual(self.app.pattern, (ClickStep(10, 20, .5),))
+        self.assertEqual(self.app.target_mode.get(), 'pattern')
+        self.assertEqual(self.app.count_label.get(), 'After this many cycles')
+
+    def test_editor_cancel_preserves_pattern(self):
+        original = (ClickStep(10, 20),)
+        self.app.pattern = original
+        self.app.edit_pattern()
+        self.app.pattern_editor.steps.clear()
+        self.app.pattern_editor.close()
+        self.assertEqual(self.app.pattern, original)
+
+    def test_editor_picker_updates_step_fields(self):
+        self.app.edit_pattern()
+        editor = self.app.pattern_editor
+        editor.pick()
+        self.app.capture_point(SimpleNamespace(x_root=20, y_root=30))
+        self.assertEqual((editor.x.get(), editor.y.get()), ('20', '30'))
+        self.assertEqual((self.app.x.get(), self.app.y.get()), ('10', '10'))
+        self.assertIsNone(self.app.overlay)
+        self.assertIs(self.root.grab_current(), editor.window)
+
+    def test_pattern_save_load_and_invalid_load(self):
+        self.app.edit_pattern()
+        editor = self.app.pattern_editor
+        editor.steps = [ClickStep(10, 20, .5), ClickStep(30, 40, 2)]
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'pattern.json'
+            with patch('autoclicker.filedialog.asksaveasfilename', return_value=str(path)):
+                editor.save()
+            editor.steps = []
+            with patch('autoclicker.filedialog.askopenfilename', return_value=str(path)):
+                editor.load()
+                self.assertEqual(editor.steps, [ClickStep(10, 20, .5), ClickStep(30, 40, 2)])
+                path.write_text('{"version": 1, "steps": [{"x": 10, "y": 20, "delay": -1}]}')
+                editor.load()
+                self.assertEqual(len(editor.steps), 2)
+                self.assertIn('Could not load', editor.status.get())
+
+    def test_pattern_runs_in_order_with_real_ui_timer(self):
+        self.app.pattern = (ClickStep(10, 20, .05), ClickStep(30, 40, .05))
+        self.app.target_mode.set('pattern')
+        self.app.delay.set('0')
+        self.app.count.set('2')
+        self.app.schedule()
+        deadline = time.monotonic() + 3
+        while self.app.run is not None and time.monotonic() < deadline:
+            self.root.update()
+            time.sleep(.005)
+        self.assertEqual(self.mouse.clicks, [(10, 20), (30, 40), (10, 20), (30, 40)])
+        self.assertIsNone(self.app.run)
+        self.assertIsNone(self.app.job)
+        self.assertFalse(self.mouse.awake)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 
 <img src="assets/icon.png" alt="Simple Autoclicker: a mouse pointer with a golden clock on a blue tile" width="96" height="96">
 
-A simple desktop interface for scheduling single or repeated left mouse clicks on **Windows or Linux (X11)**. Uses Python 3.10+, Tkinter, and pynput.
+A simple desktop interface for scheduling single clicks, repeated clicks, or multi-point click patterns on **Windows or Linux (X11)**. Uses Python 3.10+, Tkinter, and pynput.
 
 ## Windows
 
@@ -43,6 +43,20 @@ Run from your desktop, with your session unlocked. Disable automatic sleep while
 4. Choose when to **Stop**: after a total click count, or on a specific end date and time. A count of **1** keeps the original single-click behavior.
 5. Select **Start clicking**. The status shows clicks completed and time until the next click.
 6. Select **Stop / Cancel**, press **Esc while the app is focused**, or close the window to stop.
+
+### Click patterns
+
+Choose **Pattern**, then **Edit pattern...** to build an ordered sequence:
+
+1. Use **Pick point** to select a screen position, or enter X and Y.
+2. Set **Wait after (seconds)**, then choose **Add step**.
+3. Add more points. Select a row to **Update selected**, **Remove**, **Move up**, or **Move down**.
+4. Choose **Use pattern**, then set the start time and number of **cycles**, or an end date.
+5. Choose **Start clicking** to run the sequence in order.
+
+Each step performs one left click. Its delay is the wait before the next step; the last step's delay is the wait before the next cycle. All step delays are at least 0.05 seconds. A cycle runs the full list once: **3 steps x 2 cycles = 6 clicks**. An end date can stop the sequence partway through a cycle.
+
+**Save...** and **Load...** in the editor store patterns as JSON files. Loading edits the draft; **Use pattern** applies it, and **Cancel** discards draft edits. Coordinates are absolute screen positions, so check loaded patterns after changing monitors or display scaling. The single-point interval controls are disabled in pattern mode because each step has its own delay.
 
 Dates use **YYYY-MM-DD**, and times use **HH:MM:SS** in your computer's local 24-hour clock. An explicit start date must be in the future; an end date must be later than the start. No clicks start once the end time is reached, even if the next click would otherwise be due.
 
