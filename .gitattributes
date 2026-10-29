@@ -4,3 +4,5 @@
 web/** text=auto eol=lf
 # Preserve whitespace inside third-party template literals in generated bundles.
 web/dist/assets/*.js -whitespace
+# Preserve upstream license notices byte-for-byte.
+web/dist/assets/licenses/** -whitespace
